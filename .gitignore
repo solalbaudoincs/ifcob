@@ -1,9 +1,6 @@
 data/raw
 data/test_*
 */__pycache__
-<<<<<<< HEAD
 *.ipynb_checkpoints
-=======
->>>>>>> 33c9fe075964f8d2f3eb5be882a8cd547784e194
 
 .venv/
