@@ -1,6 +1,5 @@
-data/raw
-data/test_*
-data/final_test
+data/
+
 */__pycache__
 *.ipynb_checkpoints
 
