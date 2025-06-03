@@ -16,6 +16,7 @@ __pycache__/
 .Python
 *.so
 .ipynb_checkpoints
+*/.ipynb_checkpoints
 
 # Virtual environments
 .venv/
