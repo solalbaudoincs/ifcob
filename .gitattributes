@@ -1,1 +1,23 @@
+# Git LFS configuration for data files
+# Store preprocessed and feature data in LFS, but not raw data
+
+# Preprocessed data
+data/preprocessed/**/*.parquet filter=lfs diff=lfs merge=lfs -text
+data/preprocessed/**/*.csv filter=lfs diff=lfs merge=lfs -text
+data/preprocessed/**/*.json filter=lfs diff=lfs merge=lfs -text
+data/preprocessed/**/*.pkl filter=lfs diff=lfs merge=lfs -text
+data/preprocessed/**/*.pickle filter=lfs diff=lfs merge=lfs -text
+# Feature data
+data/features/**/*.parquet filter=lfs diff=lfs merge=lfs -text
+data/features/**/*.csv filter=lfs diff=lfs merge=lfs -text
+data/features/**/*.json filter=lfs diff=lfs merge=lfs -text
+data/features/**/*.pkl filter=lfs diff=lfs merge=lfs -text
+data/features/**/*.pickle filter=lfs diff=lfs merge=lfs -text
+# Model files (if any)
+*.joblib filter=lfs diff=lfs merge=lfs -text
+*.h5 filter=lfs diff=lfs merge=lfs -text
+*.hdf5 filter=lfs diff=lfs merge=lfs -text
+*.model filter=lfs diff=lfs merge=lfs -text
+# Exclude raw data from LFS (will be stored normally in git or gitignored)
+data/raw/**/* -filter -diff -merge text
 *.parquet filter=lfs diff=lfs merge=lfs -text
