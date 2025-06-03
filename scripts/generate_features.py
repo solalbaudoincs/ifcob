@@ -21,6 +21,12 @@ Usage examples:
 
     # Generate features for multiple coins
     python generate_features.py --coin ETH XBT --data-version 2
+
+    # Recompute a single feature in-place for ETH (DATA_1)
+    python generate_features.py --coin ETH --data-version 1 --recompute-feature spread
+
+    # Recompute multiple features for both ETH and XBT (DATA_2)
+    python generate_features.py --coin ETH XBT --data-version 2 --recompute-feature spread vwap-bid-5-levels
 """
 
 import argparse
@@ -105,7 +111,7 @@ def parse_arguments():
     parser.add_argument(
         '--recompute-feature',
         nargs='+',
-        help='Recompute (in-place) one or more features for the specified coin(s) and data version, leaving other features untouched.'
+        help='Recompute (in-place) one or more features for the specified coin(s) and data version, leaving other features untouched. If the required columns are missing in the features file, the raw data will be loaded and preprocessed.'
     )
     
     return parser.parse_args()

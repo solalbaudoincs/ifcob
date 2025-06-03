@@ -492,8 +492,8 @@ def recompute_feature(coin: str, data_version: int, feature_name: str, output_di
     Recompute a single feature for a coin and data version, updating the features file in place.
     Other features are left untouched and still present.
 
-    If the features file exists, it is assumed to already contain the correct index and columns (from clean_df),
-    so recomputing clean_df and loading preprocessed data is not needed.
+    If the features file exists, it is assumed to already contain the correct index and columns (from clean_df).
+    If the required columns for the feature are missing, the function will load and preprocess the raw data to obtain them.
 
     Args:
         coin: Coin symbol (e.g., 'ETH', 'XBT')
@@ -520,21 +520,29 @@ def recompute_feature(coin: str, data_version: int, feature_name: str, output_di
     # If features file exists, use its index and columns for recomputation
     if os.path.exists(features_file):
         features = pd.read_parquet(features_file)
-        # Only recompute the requested feature using the existing features DataFrame
-        # (Assume features file has all columns from clean_df)
-        new_feature = generator.features[feature_name].generate(features)
-        features[feature_name] = new_feature
-        features.to_parquet(features_file, index=True)
-        print(f"Feature '{feature_name}' recomputed (in-place) and saved to {features_file}")
-        return
+        required_cols = generator.features[feature_name].generate.__code__.co_varnames
+        # Try to recompute using existing features file
+        try:
+            new_feature = generator.features[feature_name].generate(features)
+            features[feature_name] = new_feature
+            features.to_parquet(features_file, index=True)
+            print(f"Feature '{feature_name}' recomputed (in-place) and saved to {features_file}")
+            return
+        except KeyError as e:
+            print(f"Missing columns in features file: {e}. Falling back to raw data.")
+            # Fallback to raw data below
 
-    # If features file does not exist, fall back to old logic (load and preprocess data)
+    # If features file does not exist or required columns are missing, load and preprocess data
     data_path = os.path.join(project_root, 'data', 'preprocessed', f'DATA_{data_version}', f'{coin}_EUR.parquet')
     df = pd.read_parquet(data_path)
     df_cleaned = preprocess_data(df)
     new_feature = generator.generate_feature(feature_name, df_cleaned)
-    features = pd.DataFrame(index=df_cleaned.index)
-    features[feature_name] = new_feature
+    if os.path.exists(features_file):
+        features = pd.read_parquet(features_file)
+        features[feature_name] = new_feature
+    else:
+        features = pd.DataFrame(index=df_cleaned.index)
+        features[feature_name] = new_feature
     features.to_parquet(features_file, index=True)
     print(f"Feature '{feature_name}' recomputed and saved to {features_file}")
 
