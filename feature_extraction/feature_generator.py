@@ -118,7 +118,7 @@ class LiquidityRatioFeature(BaseFeature):
     
     def __init__(self, n_levels: int = 5):
         super().__init__(
-            name="liquidity-ratio",
+            name="liquidity-ratio-{n_levels}-levels",
             description=f"Liquidity ratio: V_bid/V_ask using {n_levels} levels"
         )
         self.n_levels = n_levels
@@ -140,7 +140,7 @@ class VolatilityFeature(BaseFeature):
     
     def __init__(self, window: int = 20):
         super().__init__(
-            name="rate-inst-volatility",
+            name="rate-inst-volatility-{window}-sample",
             description=f"Instantaneous volatility using rolling window of {window} periods"
         )
         self.window = window
@@ -155,7 +155,7 @@ class MomentumFeature(BaseFeature):
     
     def __init__(self, window: int = 20):
         super().__init__(
-            name="rate-momentum",
+            name="rate-momentum-{window}-sample",
             description=f"Momentum: change in mid-price over {window} periods"
         )
         self.window = window
@@ -170,7 +170,7 @@ class TrendFeature(BaseFeature):
     
     def __init__(self, window: int = 20):
         super().__init__(
-            name="rate-mid-price-trend",
+            name="rate-mid-price-trend-{window}-sample",
             description=f"Trend indicator: rolling mean of mid-price over {window} periods"
         )
         self.window = window
@@ -222,6 +222,97 @@ class CumulativeVolumeFeature(BaseFeature):
         
         return volume
 
+class InstReturnFeature(BaseFeature):
+    """Generate inst-return feature."""
+
+    def __init__(self, time : float = 50):
+        super().__init__(
+            name=f"inst-return",
+            description="inst-return feature, it will probably be used as a target for prediction."
+        )
+        self.time = time
+
+    def generate(self, df_cleaned: pd.DataFrame, **kwargs) -> pd.Series:
+        """
+        Generate return-evolution-for-x-ms feature
+
+        Args:
+            df_cleaned: Preprocessed DataFrame with order book data
+            **kwargs: Additional keyword arguments
+
+        Returns:
+            pd.Series: The generated feature values
+        """
+        midprice = (df_cleaned["level-1-bid-price"] + df_cleaned["level-1-ask-price"]) / 2
+        df_cleaned["timestamp"] = df_cleaned.index
+        result = midprice.diff()/df_cleaned["timestamp"].diff()
+        
+        return pd.Series(result, name=self.name)
+
+class ReturnsAllSignedForXmsFeature(BaseFeature):
+    """Generate return-all-singed-for-x-ms feature."""
+
+    def __init__(self, time : float = 10):
+        super().__init__(
+            name=f"return-prediction-for-{time}-ms",
+            description="return-evolution-for-x-ms feature, it will probably be used as a target for classification."
+        )
+        self.time = time
+
+    def generate(self, df_cleaned: pd.DataFrame, **kwargs) -> pd.Series:
+        """
+        Generate return-evolution-for-x-ms feature
+
+        Args:
+            df_cleaned: Preprocessed DataFrame with order book data
+            **kwargs: Additional keyword arguments
+
+        Returns:
+            pd.Series: The generated feature values
+        """
+        
+        time_window = 10  # You can adjust this time window, in ms (?)
+
+        # Find, for each index, the index of the row whose timestamp is closest to (initial timestamp + time_window)
+        timestamps = df_cleaned.index.values
+        target_times = timestamps + time_window
+
+        # Use numpy searchsorted for efficient lookup
+        idx_next = np.searchsorted(timestamps, target_times, side="left")
+        idx_next[idx_next >= len(timestamps)] = len(timestamps) - 1  # Clamp to last index
+
+        # For each row, create a window from current index to idx_next (inclusive)
+        # and check if all returns in that window are positive
+        mid_price = (df_cleaned["level-1-bid-price"] + df_cleaned["level-1-ask-price"]) / 2
+        returns = mid_price.diff()
+
+        # Create a boolean array where returns > 0
+        positive_mask = returns > 0
+
+        # For each i, we want to check if all positive_  mask[i:end+1] are True
+        # We can use cumulative sum to efficiently check this:
+        cumsum = np.cumsum(~positive_mask)  # ~positive_mask is True where returns <= 0
+
+        # For each i, the number of non-positive returns in [i, idx_next[i]] is:
+        # cumsum[end] - cumsum[i-1] (with care for i==0)
+        start_idx = np.arange(len(returns))
+        end_idx = idx_next
+
+        # Pad cumsum with a zero at the beginning for easier indexing
+        cumsum_padded = np.concatenate([[0], cumsum])
+
+        # Number of non-positive returns in window [i, end_idx[i]]
+        num_non_positive = cumsum_padded[end_idx + 1] - cumsum_padded[start_idx]
+
+        # Set 1 if all positive, -1 if all negative, 0 otherwise
+        all_positive =  (0 == num_non_positive)
+        all_negative = (end_idx - start_idx + 1) == num_non_positive
+        result = np.zeros(len(returns), dtype=int)
+        result[all_positive] = 1
+        result[all_negative] = -1
+        
+        return pd.Series(result, index=df_cleaned.index, name=self.name)
+
 
 class FeatureGenerator:
     """Main feature generator class that manages all features."""
@@ -263,6 +354,12 @@ class FeatureGenerator:
         # Cumulative volume features
         self.register_feature(CumulativeVolumeFeature('bid', n_levels))
         self.register_feature(CumulativeVolumeFeature('ask', n_levels))
+
+        self.register_feature(InstReturnFeature())
+
+        self.register_feature(ReturnsAllSignedForXmsFeature(5))
+        self.register_feature(ReturnsAllSignedForXmsFeature(10))
+        self.register_feature(ReturnsAllSignedForXmsFeature(20))
     
     def register_feature(self, feature: BaseFeature):
         """Register a new feature."""

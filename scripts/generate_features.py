@@ -55,8 +55,8 @@ def parse_arguments():
     parser.add_argument(
         '--coin', '-c',
         nargs='+',
-        default=['ETH'],
-        help='Coin symbol(s) to process (default: ETH). Can specify multiple coins.'
+        default=['ETH', 'XBT'],
+        help='Coin symbol(s) to process (default: [ETH, XBT]). Can specify multiple coins.'
     )
     
     parser.add_argument(
