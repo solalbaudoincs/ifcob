@@ -6,11 +6,50 @@ from preprocessed order book data. Features can be generated individually or
 in batches, and new features can be easily added.
 """
 
+import sys
+import os
 import pandas as pd
 import numpy as np
 from typing import Dict, List, Callable, Optional, Any
 from abc import ABC, abstractmethod
 import warnings
+
+
+try:
+    from feature_extraction.features import (
+        BidAskImbalanceFeature,
+        SpreadFeature,
+        BookSlopeFeature,
+        VWAPFeature,
+        LiquidityRatioFeature,
+        VolatilityFeature,
+        MomentumFeature,
+        TrendFeature,
+        VolumeFeature,
+        CumulativeVolumeFeature,
+        InstReturnFeature,
+        ReturnsAllSignedForXmsFeature,
+    )
+except ImportError:
+    from features import (
+        BidAskImbalanceFeature,
+        SpreadFeature,
+        BookSlopeFeature,
+        VWAPFeature,
+        LiquidityRatioFeature,
+        VolatilityFeature,
+        MomentumFeature,
+        TrendFeature,
+        VolumeFeature,
+        CumulativeVolumeFeature,
+        InstReturnFeature,
+        ReturnsAllSignedForXmsFeature,
+    )
+
+current_dir = os.path.dirname(os.path.abspath(__file__))
+project_root = os.path.dirname(current_dir)
+if project_root not in sys.path:
+    sys.path.insert(0, project_root)
 
 
 class BaseFeature(ABC):
@@ -24,294 +63,6 @@ class BaseFeature(ABC):
     def generate(self, df_cleaned: pd.DataFrame, **kwargs) -> pd.Series:
         """Generate the feature from cleaned data."""
         pass
-
-
-class BidAskImbalanceFeature(BaseFeature):
-    """Generate bid-ask imbalance features."""
-    
-    def __init__(self, n_levels: int = 5):
-        super().__init__(
-            name=f"bid-ask-imbalance-{n_levels}-levels",
-            description=f"Bid-ask imbalance using top {n_levels} levels. "
-                       "Close to 1 → strong buying pressure, Close to -1 → strong selling pressure, Near 0 → balanced depth."
-        )
-        self.n_levels = n_levels
-    
-    def generate(self, df_cleaned: pd.DataFrame, **kwargs) -> pd.Series:
-        # Calculate cumulative volumes for bid and ask sides
-        v_bid = df_cleaned["level-1-bid-volume"].copy()
-        v_ask = df_cleaned["level-1-ask-volume"].copy()
-        
-        for i in range(2, self.n_levels + 1):
-            v_bid += df_cleaned[f"level-{i}-bid-volume"]
-            v_ask += df_cleaned[f"level-{i}-ask-volume"]
-        
-        # Calculate imbalance: (V_bid - V_ask)/(V_bid + V_ask)
-        return (v_bid - v_ask) / (v_bid + v_ask)
-
-
-class SpreadFeature(BaseFeature):
-    """Generate bid-ask spread feature."""
-    
-    def __init__(self):
-        super().__init__(
-            name="spread",
-            description="Bid-ask spread: level-1-ask-price - level-1-bid-price"
-        )
-    
-    def generate(self, df_cleaned: pd.DataFrame, **kwargs) -> pd.Series:
-        return df_cleaned["level-1-ask-price"] - df_cleaned["level-1-bid-price"]
-
-
-class BookSlopeFeature(BaseFeature):
-    """Generate book slope features for bid and ask sides."""
-    
-    def __init__(self, side: str, n_levels: int = 5):
-        if side not in ['bid', 'ask']:
-            raise ValueError("side must be 'bid' or 'ask'")
-        
-        super().__init__(
-            name=f"slope-{side}-{n_levels}-levels",
-            description=f"Book slope for {side} side using {n_levels} levels. "
-                       "Measures steepness of liquidity: (P_N - P_1) / V_sum"
-        )
-        self.side = side
-        self.n_levels = n_levels
-    
-    def generate(self, df_cleaned: pd.DataFrame, **kwargs) -> pd.Series:
-        price_cols = [f"level-{i}-{self.side}-price" for i in range(1, self.n_levels + 1)]
-        volume_cols = [f"level-{i}-{self.side}-volume" for i in range(1, self.n_levels + 1)]
-        
-        p_n = df_cleaned[price_cols[-1]]
-        p_1 = df_cleaned[price_cols[0]]
-        v_sum = sum([df_cleaned[col] for col in volume_cols])
-        
-        return (p_n - p_1) / v_sum
-
-
-class VWAPFeature(BaseFeature):
-    """Generate Volume-Weighted Average Price features."""
-    
-    def __init__(self, side: str, n_levels: int = 5):
-        if side not in ['bid', 'ask']:
-            raise ValueError("side must be 'bid' or 'ask'")
-        
-        super().__init__(
-            name=f"vwap-{side}-{n_levels}-levels",
-            description=f"Volume-Weighted Average Price for {side} side using {n_levels} levels"
-        )
-        self.side = side
-        self.n_levels = n_levels
-    
-    def generate(self, df_cleaned: pd.DataFrame, **kwargs) -> pd.Series:
-        price_cols = [f"level-{i}-{self.side}-price" for i in range(1, self.n_levels + 1)]
-        volume_cols = [f"level-{i}-{self.side}-volume" for i in range(1, self.n_levels + 1)]
-        
-        prices = df_cleaned[price_cols]
-        volumes = df_cleaned[volume_cols]
-        
-        return (prices * volumes).sum(axis=1) / volumes.sum(axis=1)
-
-
-class LiquidityRatioFeature(BaseFeature):
-    """Generate liquidity ratio feature."""
-    
-    def __init__(self, n_levels: int = 5):
-        super().__init__(
-            name="liquidity-ratio-{n_levels}-levels",
-            description=f"Liquidity ratio: V_bid/V_ask using {n_levels} levels"
-        )
-        self.n_levels = n_levels
-    
-    def generate(self, df_cleaned: pd.DataFrame, **kwargs) -> pd.Series:
-        # Calculate cumulative volumes
-        v_bid = df_cleaned["level-1-bid-volume"].copy()
-        v_ask = df_cleaned["level-1-ask-volume"].copy()
-        
-        for i in range(2, self.n_levels + 1):
-            v_bid += df_cleaned[f"level-{i}-bid-volume"]
-            v_ask += df_cleaned[f"level-{i}-ask-volume"]
-        
-        return v_bid / v_ask
-
-
-class VolatilityFeature(BaseFeature):
-    """Generate instantaneous volatility feature."""
-    
-    def __init__(self, window: int = 20):
-        super().__init__(
-            name="rate-inst-volatility-{window}-sample",
-            description=f"Instantaneous volatility using rolling window of {window} periods"
-        )
-        self.window = window
-    
-    def generate(self, df_cleaned: pd.DataFrame, **kwargs) -> pd.Series:
-        mid_price = (df_cleaned["level-1-bid-price"] + df_cleaned["level-1-ask-price"]) / 2
-        return mid_price.rolling(window=self.window).var()
-
-
-class MomentumFeature(BaseFeature):
-    """Generate momentum feature."""
-    
-    def __init__(self, window: int = 20):
-        super().__init__(
-            name="rate-momentum-{window}-sample",
-            description=f"Momentum: change in mid-price over {window} periods"
-        )
-        self.window = window
-    
-    def generate(self, df_cleaned: pd.DataFrame, **kwargs) -> pd.Series:
-        mid_price = (df_cleaned["level-1-bid-price"] + df_cleaned["level-1-ask-price"]) / 2
-        return mid_price.diff(periods=self.window)
-
-
-class TrendFeature(BaseFeature):
-    """Generate trend indicator feature."""
-    
-    def __init__(self, window: int = 20):
-        super().__init__(
-            name="rate-mid-price-trend-{window}-sample",
-            description=f"Trend indicator: rolling mean of mid-price over {window} periods"
-        )
-        self.window = window
-    
-    def generate(self, df_cleaned: pd.DataFrame, **kwargs) -> pd.Series:
-        mid_price = (df_cleaned["level-1-bid-price"] + df_cleaned["level-1-ask-price"]) / 2
-        return mid_price.rolling(window=self.window).mean()
-
-
-class VolumeFeature(BaseFeature):
-    """Generate volume features."""
-    
-    def __init__(self, side: str, level: int = 1, window: int = 20):
-        if side not in ['bid', 'ask']:
-            raise ValueError("side must be 'bid' or 'ask'")
-        
-        super().__init__(
-            name=f"rate-{side}-volume-level-{level}",
-            description=f"Average {side} volume at level {level} over {window} periods"
-        )
-        self.side = side
-        self.level = level
-        self.window = window
-    
-    def generate(self, df_cleaned: pd.DataFrame, **kwargs) -> pd.Series:
-        volume_col = f"level-{self.level}-{self.side}-volume"
-        return df_cleaned[volume_col].rolling(window=self.window).mean()
-
-
-class CumulativeVolumeFeature(BaseFeature):
-    """Generate cumulative volume features."""
-    
-    def __init__(self, side: str, n_levels: int = 5):
-        if side not in ['bid', 'ask']:
-            raise ValueError("side must be 'bid' or 'ask'")
-        
-        super().__init__(
-            name=f"V-{side}-{n_levels}-levels",
-            description=f"Cumulative {side} volume across {n_levels} levels"
-        )
-        self.side = side
-        self.n_levels = n_levels
-    
-    def generate(self, df_cleaned: pd.DataFrame, **kwargs) -> pd.Series:
-        volume = df_cleaned[f"level-1-{self.side}-volume"].copy()
-        
-        for i in range(2, self.n_levels + 1):
-            volume += df_cleaned[f"level-{i}-{self.side}-volume"]
-        
-        return volume
-
-class InstReturnFeature(BaseFeature):
-    """Generate inst-return feature."""
-
-    def __init__(self, time : float = 50):
-        super().__init__(
-            name=f"inst-return",
-            description="inst-return feature, it will probably be used as a target for prediction."
-        )
-        self.time = time
-
-    def generate(self, df_cleaned: pd.DataFrame, **kwargs) -> pd.Series:
-        """
-        Generate return-evolution-for-x-ms feature
-
-        Args:
-            df_cleaned: Preprocessed DataFrame with order book data
-            **kwargs: Additional keyword arguments
-
-        Returns:
-            pd.Series: The generated feature values
-        """
-        midprice = (df_cleaned["level-1-bid-price"] + df_cleaned["level-1-ask-price"]) / 2
-        df_cleaned["timestamp"] = df_cleaned.index
-        result = midprice.diff()/df_cleaned["timestamp"].diff()
-        
-        return pd.Series(result, name=self.name)
-
-class ReturnsAllSignedForXmsFeature(BaseFeature):
-    """Generate return-all-singed-for-x-ms feature."""
-
-    def __init__(self, time : float = 10):
-        super().__init__(
-            name=f"return-prediction-for-{time}-ms",
-            description="return-evolution-for-x-ms feature, it will probably be used as a target for classification."
-        )
-        self.time = time
-
-    def generate(self, df_cleaned: pd.DataFrame, **kwargs) -> pd.Series:
-        """
-        Generate return-evolution-for-x-ms feature
-
-        Args:
-            df_cleaned: Preprocessed DataFrame with order book data
-            **kwargs: Additional keyword arguments
-
-        Returns:
-            pd.Series: The generated feature values
-        """
-        
-        time_window = 10  # You can adjust this time window, in ms (?)
-
-        # Find, for each index, the index of the row whose timestamp is closest to (initial timestamp + time_window)
-        timestamps = df_cleaned.index.values
-        target_times = timestamps + time_window
-
-        # Use numpy searchsorted for efficient lookup
-        idx_next = np.searchsorted(timestamps, target_times, side="left")
-        idx_next[idx_next >= len(timestamps)] = len(timestamps) - 1  # Clamp to last index
-
-        # For each row, create a window from current index to idx_next (inclusive)
-        # and check if all returns in that window are positive
-        mid_price = (df_cleaned["level-1-bid-price"] + df_cleaned["level-1-ask-price"]) / 2
-        returns = mid_price.diff()
-
-        # Create a boolean array where returns > 0
-        positive_mask = returns > 0
-
-        # For each i, we want to check if all positive_  mask[i:end+1] are True
-        # We can use cumulative sum to efficiently check this:
-        cumsum = np.cumsum(~positive_mask)  # ~positive_mask is True where returns <= 0
-
-        # For each i, the number of non-positive returns in [i, idx_next[i]] is:
-        # cumsum[end] - cumsum[i-1] (with care for i==0)
-        start_idx = np.arange(len(returns))
-        end_idx = idx_next
-
-        # Pad cumsum with a zero at the beginning for easier indexing
-        cumsum_padded = np.concatenate([[0], cumsum])
-
-        # Number of non-positive returns in window [i, end_idx[i]]
-        num_non_positive = cumsum_padded[end_idx + 1] - cumsum_padded[start_idx]
-
-        # Set 1 if all positive, -1 if all negative, 0 otherwise
-        all_positive =  (0 == num_non_positive)
-        all_negative = (end_idx - start_idx + 1) == num_non_positive
-        result = np.zeros(len(returns), dtype=int)
-        result[all_positive] = 1
-        result[all_negative] = -1
-        
-        return pd.Series(result, index=df_cleaned.index, name=self.name)
 
 
 class FeatureGenerator:

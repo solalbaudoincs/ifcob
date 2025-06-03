@@ -29,19 +29,20 @@ Usage examples:
     python generate_features.py --coin ETH XBT --data-version 2 --recompute-feature spread vwap-bid-5-levels
 """
 
-import argparse
 import sys
-import os
 from pathlib import Path
+
+# Ensure project root is in sys.path for absolute imports
+project_root = Path(__file__).resolve().parent.parent
+if str(project_root) not in sys.path:
+    sys.path.insert(0, str(project_root))
+
+import argparse
+import os
 from typing import List, Optional
 import pandas as pd
 
-# Add the feature_extraction directory to the Python path
-current_dir = Path(__file__).parent
-feature_extraction_dir = current_dir.parent / "feature_extraction"
-sys.path.insert(0, str(feature_extraction_dir))
-
-from feature_generator import (
+from feature_extraction.feature_generator import (
     FeatureGenerator, 
     load_and_generate_features, 
     save_features,

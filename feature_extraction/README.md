@@ -14,29 +14,43 @@ The feature generation system consists of:
 
 The system currently supports the following financial features:
 
-### Order Book Imbalance Features
+#### Order Book Imbalance Features
 - **`bid-ask-imbalance-{n}-levels`** - Measures order book imbalance: (V_bid - V_ask)/(V_bid + V_ask)
 - **`liquidity-ratio`** - Liquidity ratio: V_bid/V_ask
 
-### Price Features
+#### Price Features
 - **`spread`** - Bid-ask spread: level-1-ask-price - level-1-bid-price
 - **`vwap-bid-{n}-levels`** - Volume-Weighted Average Price for bid side
 - **`vwap-ask-{n}-levels`** - Volume-Weighted Average Price for ask side
 
-### Volume Features
+#### Volume Features
 - **`V-bid-{n}-levels`** - Cumulative bid volume across multiple levels
 - **`V-ask-{n}-levels`** - Cumulative ask volume across multiple levels
 - **`rate-bid-volume-level-1`** - Rolling average of bid volume at level 1
 - **`rate-ask-volume-level-1`** - Rolling average of ask volume at level 1
 
-### Book Shape Features
+#### Book Shape Features
 - **`slope-bid-{n}-levels`** - Book slope for bid side: (P_N - P_1) / V_sum
 - **`slope-ask-{n}-levels`** - Book slope for ask side: (P_N - P_1) / V_sum
 
-### Statistical Features
+#### Statistical Features
 - **`rate-inst-volatility`** - Instantaneous volatility (rolling variance of mid-price)
 - **`rate-momentum`** - Momentum (change in mid-price over time window)
 - **`rate-mid-price-trend`** - Trend indicator (rolling mean of mid-price)
+
+#### Additional Features
+- **`rate-bid-volume-level-1`** - Average bid volume at level 1 over a rolling window
+- **`rate-ask-volume-level-1`** - Average ask volume at level 1 over a rolling window
+- **`V-bid-5-levels`** - Cumulative bid volume across 5 levels
+- **`V-ask-5-levels`** - Cumulative ask volume across 5 levels
+
+#### Return/Prediction Features
+- **`inst-return`** - Instantaneous return feature, typically used as a prediction target.
+- **`return-all-signed-for-5-ms`** - Classification target: all returns positive/negative/neutral in the next 5 ms.
+- **`return-all-signed-for-10-ms`** - Classification target: all returns positive/negative/neutral in the next 10 ms.
+- **`return-all-signed-for-20-ms`** - Classification target: all returns positive/negative/neutral in the next 20 ms.
+
+*If you have added new features to the generator, list them here with a short description.*
 
 ## Usage
 
@@ -58,6 +72,15 @@ python scripts/generate_features.py --coin ETH --data-version 2 --features sprea
 
 # Regenerate a single feature (overwrite existing)
 python scripts/generate_features.py --coin ETH --data-version 2 --features spread --overwrite
+```
+
+#### Recompute (In-Place) One or More Features
+```bash
+# Recompute a single feature in-place for ETH (DATA_1)
+python scripts/generate_features.py --coin ETH --data-version 1 --recompute-feature spread
+
+# Recompute multiple features for both ETH and XBT (DATA_2)
+python scripts/generate_features.py --coin ETH XBT --data-version 2 --recompute-feature spread vwap-bid-5-levels
 ```
 
 #### List Available Features
@@ -156,6 +179,20 @@ class MyCustomFeature(BaseFeature):
 # In _register_default_features() method
 self.register_feature(MyCustomFeature(window=20))
 ```
+
+## Modular Feature Structure
+
+All feature classes are now located in the `feature_extraction/features/` folder, each in their own file. This makes it easy to add, remove, or modify features independently.
+
+- To add a new feature, create a new file in `feature_extraction/features/` and define your feature class inheriting from `BaseFeature` (import from `feature_extraction.base`).
+- Register your new feature in `features/__init__.py` for automatic inclusion in the generator.
+
+**Note:**
+- For CLI usage, run the script as a module from the project root:
+  ```powershell
+  python -m scripts.generate_features --coin ETH --data-version 1 --verbose
+  ```
+- This ensures all relative imports work correctly in a package context.
 
 ## Data Structure
 
