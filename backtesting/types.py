@@ -110,8 +110,8 @@ class OrderBookDataLoader(ABC):
                 # Advance the index for the coin with minimum timestep
                 for coin in min_coins:
                     coin_indices[coin] += 1
-                    if coin_indices[coin] >= len(all_timesteps[min_coins]):
-                        del coin_indices[min_coins]
+                    if coin_indices[coin] >= len(all_timesteps[coin]):
+                        del coin_indices[coin]
         
         return indices_generator()
 
