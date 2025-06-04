@@ -13,7 +13,7 @@ class RFPredAllSignedStratMateo(Strategy):
 
     def __init__(self, window_size=5):
         super().__init__()
-        self.model = joblib.load(f"../predictors/mateo/rf_model_{window_size}ms.joblib")
+        self.model = joblib.load(f"predictors/mateo/rf_model_{window_size}ms.joblib")
         self.target_eth = 10.0
 
 
@@ -26,11 +26,11 @@ class RFPredAllSignedStratMateo(Strategy):
         features["bid-ask-imbalance-5-levels"] = features["V-bid-5-levels"] - features["V-ask-5-levels"]
         features["spread"] = rows[f"level-1-ask-price"] - rows[f"level-1-bid-price"]
         mid_price = (rows[f"level-1-ask-price"] + rows[f"level-1-bid-price"]) / 2
-        features["inst-return"] = mid_price.diff()/rows.index.values.diff()
+        features["inst-return"] = mid_price.diff()/rows.index.diff()
         features["slope-bid-5-levels"] = (rows["level-5-bid-price"] - rows["level-1-bid-price"])/ features["V-bid-5-levels"]
         features["slope-ask-5-levels"] = (rows["level-5-ask-price"] - rows["level-1-ask-price"])/ features["V-ask-5-levels"]
         last_signal = features.iloc[-1]
-        prediction = self.model.predict([last_signal])[0]
+        prediction = self.model.predict(last_signal)[0]
         if prediction == -1:
             # sell signal
             return {"ETH" : -0.1}
