@@ -62,9 +62,9 @@ class RFPredAllSignedStratMateoCheating(Strategy):
         elif prediction == 0:
             # Hold signal
             return {"ETH": self.target_eth - current_portfolio.get_position("ETH")}
-        elif prediction == 1 and current_portfolio.get_position("ETH") < 200:
+        #elif prediction == 1 and current_portfolio.get_position("ETH") < 200:
             # buy signal
-            return {"ETH": 0.1}
+        #    return {"ETH": 0.1}
         elif prediction not in (-1, 0, 1):
             raise ValueError(f"Unexpected prediction value: {prediction}. Expected -1, 0, or 1.")
         return {}

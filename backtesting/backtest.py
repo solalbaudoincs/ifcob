@@ -43,7 +43,7 @@ class BacktestConfig:
     # Max time allowed for get_action (seconds)
     max_action_runtime: float = 0.1
     skip_on_timeout: bool = True         # Skip timestep if action takes too long
-    network_latency_delta: float = 0.05  # Network latency in seconds (delta)
+    network_latency_delta: float = 0.001  # Network latency in seconds (delta)
 
 
 class Backtester:
@@ -186,14 +186,12 @@ class Backtester:
                             continue
 
                         # Schedule orders for execution at timestamp + runtime + delta
-                        execution_timestamp = current_timestep + \
-                            action_runtime + self.config.network_latency_delta
+                        execution_timestamp = current_timestep + action_runtime + self.config.network_latency_delta
                         self._schedule_orders(actions, execution_timestamp, current_timestep, action_runtime,
                                               strategy_name, 'validation')
 
                         # Record portfolio value at decision time (before new trades execute)
-                        portfolio_value = portfolio.get_value(
-                            windowed_market_data)
+                        portfolio_value = portfolio.get_value(windowed_market_data)
                         history.append((current_timestep, portfolio_value))
 
                 # Print status update every 10,000 iterations
@@ -715,27 +713,16 @@ class Backtester:
             # Show other coin holdings
             for coin in self.config.symbols:
                 amount = current_portfolio.positions.get(coin, 0)
-                if amount > 0:
+                if amount >= 0:
                     # Try to get current price for valuation
                     try:
-                        if coin in windowed_market_data and not windowed_market_data[coin].empty:
-                            latest_data = windowed_market_data[coin].iloc[-1]
-                            if 'level-1-bid-price' in latest_data and 'level-1-ask-price' in latest_data:
-                                # Use mid price from bid-ask
-                                bid = latest_data['level-1-bid-price']
-                                ask = latest_data['level-1-ask-price']
-                                price = (bid + ask) / 2.0
-                            elif 'mid_price' in latest_data:
-                                price = latest_data['mid_price']
-                            elif 'close' in latest_data:
-                                price = latest_data['close']
-                            else:
-                                price = latest_data.iloc[0] if len(latest_data) > 0 else 0
+                        if coin in windowed_market_data:
+                            price = estimate_price(windowed_market_data[coin], "bid")
                             value = amount * price
                             value_percent = (value / current_value * 100) if current_value > 0 else 0
                             print(f"      🪙 {coin}: {amount:.6f} (≈${value:,.2f} @ ${price:.4f}, {value_percent:.1f}%)")
                         else:
-                            print(f"      🪙 {coin}: {amount:.6f}")
+                            print(f"      🪙 {coin}: {amount:.6f} (couldn't acess coin in windowed_market_data)")
                     except Exception as e:
                         print(f"      🪙 {coin}: {amount:.6f} (price unavailable)")
             

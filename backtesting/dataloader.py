@@ -13,6 +13,7 @@ class OrderBookDataFromDf(OrderBookDataLoader):
             df = pd.read_parquet(filepath)
             # Reset index to make timestamp a column and flatten multi-index if present
             df["timestamp"] = df.index.values
+            df = df.dropna()
             self.dfs[coin] = df
     
     def get_book_from_range(self, coin: Coin, start_time: TimeStep, end_time: TimeStep) -> pd.DataFrame:

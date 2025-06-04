@@ -2,27 +2,17 @@ from .types import Coin, MarketData, OrderBookData, FeesGraph
 from typing import Dict
 
 
-def estimate_price(data: OrderBookData) -> float:
+def estimate_price(data: OrderBookData, side) -> float:
     """Estimates current price from latest orderbook data using bid-ask level 1"""
     if data.empty:
         raise ValueError("Cannot estimate price from empty data")
     
     # Use level-1 bid and ask prices (best bid/ask)
-    if 'level-1-bid-price' in data.columns and 'level-1-ask-price' in data.columns:
-        latest_bid = data['level-1-bid-price'].iloc[-1]
-        latest_ask = data['level-1-ask-price'].iloc[-1]
-        # Mid-price is the average of best bid and ask
-        return (latest_bid + latest_ask) / 2.0
+    if side == 'ask' and 'level-1-ask-price' in data.columns:
+        return data['level-1-ask-price'].iloc[-1]
     
-    # Fallback: if somehow the standard columns exist
-    if 'bid' in data.columns and 'ask' in data.columns:
-        latest_bid = data['bid'].iloc[-1]
-        latest_ask = data['ask'].iloc[-1]
-        return (latest_bid + latest_ask) / 2.0
-    
-    # Last fallback: if there's a direct price column
-    if 'price' in data.columns:
-        return float(data['price'].iloc[-1])
+    if side == 'bid' and 'level-1-bid-price' in data.columns:
+        return data['level-1-bid-price'].iloc[-1]
     
     raise ValueError("Cannot estimate price: no valid price columns found")
 
@@ -70,7 +60,7 @@ class Portfolio:
         for coin, amount in self.positions.items():
             if coin != 'EURC' and amount != 0:
                 if coin in market_data:
-                    price = estimate_price(market_data[coin])
+                    price = estimate_price(market_data[coin], "bid")
                     total_value += amount * price
                 else:
                     # If no market data available, assume zero value (or could raise error)
@@ -99,19 +89,38 @@ class Portfolio:
         return self.positions[coin_from] >= required_amount
  
     
-    def execute_trade(self, coin_from: Coin, coin_to: Coin, amount: float, fees_graph: FeesGraph) -> bool:
-        """Execute a trade between two coins using fees graph, returns True if successful"""
-        if not self.can_execute_trade(coin_from, coin_to, amount, fees_graph):
+    def execute_trade(self, coin_from: Coin, coin_to: Coin, ratio : float, volume : float, fees_graph: FeesGraph, reverse = False) -> bool:
+        """Execute a trade between two coins using fees graph, returns True if successful
+            ratio is the price ratio coin_from/coin_to by default, volume is the amount of coin_to to obtained
+            Thoses can be reversed by setting reverse=True, in which case ration is coin_to/coin_from and volume is the amount of coin_from sold
+        """
+
+        #print(f"Executing trade: {coin_from} -> {coin_to}, ratio: {ratio}, volume: {volume}, reverse: {reverse} ")
+
+        if reverse and (not self.can_execute_trade(coin_from, coin_to, volume , fees_graph)):
             return False
+        elif (not reverse) and (not self.can_execute_trade(coin_from, coin_to, volume*ratio, fees_graph)):
+            return False
+        
+        #print(f"positions before trade: {self.positions}")
         
         try:
             fee_rate = get_fee_for_trade(coin_from, coin_to, fees_graph)
             
             # Deduct from source coin (including fees)
-            total_cost = amount * (1 + fee_rate)
+            if reverse:
+                # If reverse is True, we are trading coin_to for coin_from
+                total_ratio = ratio * (1 + fee_rate)
+                self.update_position(coin_from, -volume)
+                self.update_position(coin_to, volume*total_ratio)
+            else:
+                # Normal trade: coin_from for coin_to
+                total_ratio = ratio * (1 + fee_rate)
 
-            self.update_position(coin_from, -total_cost)
-            self.update_position(coin_to, amount)
+                self.update_position(coin_from, -total_ratio * volume)
+                self.update_position(coin_to, volume)
+            
+            #print(f"positions after trade: {self.positions}")
 
             return True
         

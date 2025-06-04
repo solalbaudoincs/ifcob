@@ -41,6 +41,8 @@ class OrderProcessor:
         except Exception as e:
             print(
                 f"Order processing failed for {coin} at {execution_timestamp}: {e}")
+            import traceback
+            traceback.print_exc()
             return None
 
     def _get_market_data_at_timestamp(self, coin: Coin, timestamp: TimeStep) -> pd.DataFrame:
@@ -74,7 +76,7 @@ class OrderProcessor:
                            execution_timestamp: TimeStep, portfolio: Portfolio) -> Optional[Dict]:
         """Process buy order with market impact and fees at execution time"""
         try:
-            price = estimate_price(coin_data)
+            price = estimate_price(coin_data, 'ask')
 
             cost = amount * price
 
@@ -83,8 +85,7 @@ class OrderProcessor:
                 fee_rate = get_fee_for_trade('EURC', coin, self.fees_graph)
 
                 # CRITICAL: Portfolio is updated HERE at execution time
-                success = portfolio.execute_trade(
-                    'EURC', coin, cost, self.fees_graph)
+                success = portfolio.execute_trade('EURC', coin, price, amount, self.fees_graph)
 
                 if success:
                     return {
@@ -98,7 +99,7 @@ class OrderProcessor:
                         'fee_rate': fee_rate
                     }
             else:
-                print('failed to execute')
+                print(f"Buy order failed for {coin}: volume : {amount}, coin_data : {coin_data}, portfolio : {portfolio}, XBT_price : {price}, coin_price : {price}, total cost : {cost}€")
         except ValueError as e:
             print(f"Buy order failed for {coin}: {e}")
 
@@ -109,15 +110,14 @@ class OrderProcessor:
         """Process sell order with market impact and fees at execution time"""
         try:
             
-            price = estimate_price(coin_data)
+            price = estimate_price(coin_data, 'bid')
 
             # Check if portfolio has enough coins to sell at execution time
             if portfolio.can_execute_trade(coin, 'EURC', amount, self.fees_graph):
                 fee_rate = get_fee_for_trade(coin, 'EURC', self.fees_graph)
 
                 # CRITICAL: Portfolio is updated HERE at execution time
-                success = portfolio.execute_trade(
-                    coin, 'EURC', amount, self.fees_graph)
+                success = portfolio.execute_trade(coin, 'EURC', price, amount, self.fees_graph, reverse=True)
 
                 if success:
                     proceeds = amount * price
