@@ -10,3 +10,4 @@ from .volume import VolumeFeature
 from .cumulative_volume import CumulativeVolumeFeature
 from .inst_return import InstReturnFeature
 from .returns_all_signed_for_xms import ReturnsAllSignedForXmsFeature
+from .cumulative_return import CumulativeReturnVsVolatilityFeature
