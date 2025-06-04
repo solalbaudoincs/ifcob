@@ -40,68 +40,6 @@ def get_bid_ask_spread(data: OrderBookData) -> float:
     raise ValueError("Cannot calculate spread: no level-1 bid/ask prices found")
 
 
-def get_market_impact_estimate(data: OrderBookData, trade_amount: float, side: str) -> float:
-    """
-    Estimate market impact for a trade given the order book depth.
-    This considers the volume available at each level.
-    """
-    if data.empty:
-        raise ValueError("Cannot estimate market impact from empty data")
-    
-    remaining_amount = abs(trade_amount)
-    total_cost = 0.0
-    
-    if side.lower() == 'buy':
-        # For buying, we consume ask levels starting from level 1
-        for level in range(1, 11):  # levels 1-10
-            price_col = f'level-{level}-ask-price'
-            volume_col = f'level-{level}-ask-volume'
-            
-            if price_col not in data.columns or volume_col not in data.columns:
-                break
-                
-            available_volume = data[volume_col].iloc[-1]
-            price = data[price_col].iloc[-1]
-            
-            if available_volume <= 0:
-                continue
-                
-            consumed_volume = min(remaining_amount, available_volume)
-            total_cost += consumed_volume * price
-            remaining_amount -= consumed_volume
-            
-            if remaining_amount <= 0:
-                break
-    
-    elif side.lower() == 'sell':
-        # For selling, we consume bid levels starting from level 1
-        for level in range(1, 11):  # levels 1-10
-            price_col = f'level-{level}-bid-price'
-            volume_col = f'level-{level}-bid-volume'
-            
-            if price_col not in data.columns or volume_col not in data.columns:
-                break
-                
-            available_volume = data[volume_col].iloc[-1]
-            price = data[price_col].iloc[-1]
-            
-            if available_volume <= 0:
-                continue
-                
-            consumed_volume = min(remaining_amount, available_volume)
-            total_cost += consumed_volume * price
-            remaining_amount -= consumed_volume
-            
-            if remaining_amount <= 0:
-                break
-    
-    if remaining_amount > 0:
-        # Not enough liquidity - could raise warning or use last available price
-        pass
-    
-    executed_amount = abs(trade_amount) - remaining_amount
-    return total_cost / executed_amount if executed_amount > 0 else 0.0
-
 
 def get_fee_for_trade(coin_from: Coin, coin_to: Coin, fees_graph: FeesGraph) -> float:
     """Get the fee rate for trading from one coin to another using the fees graph"""
