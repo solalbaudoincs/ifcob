@@ -154,6 +154,9 @@ class FeatureGenerator:
             else:
                 warnings.warn(f"Feature '{feature_name}' is not registered")
         
+        for col in df_cleaned.columns:
+            features_df[col] = df_cleaned[col]
+        
         return features_df
     
     def generate_all_features(self, df_cleaned: pd.DataFrame, **kwargs) -> pd.DataFrame:
