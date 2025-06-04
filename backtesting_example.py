@@ -8,7 +8,7 @@ from backtesting.strategy import Strategy
 from backtesting.portfolio import Portfolio
 from backtesting.backtest import Backtester, BacktestConfig
 from backtesting.dataloader import OrderBookDataFromDf
-from strategies.rf_pred_all_signed_strat_mateo import RFPredAllSignedStratMateo
+from strategies.rf_pred_all_signed_strat_mateo import RFPredAllSignedStratMateo, RFPredAllSignedStratMateoCheating
 
 
 class SimpleExampleStrategy(Strategy):
@@ -98,7 +98,7 @@ def demonstrate_backtesting_architecture():
     backtester = Backtester(dataloader, config)
     
     print("Backtesting Architecture Initialized Successfully")
-    strategies = [SimpleExampleStrategy(), RFPredAllSignedStratMateo()]
+    strategies = [SimpleExampleStrategy(), RFPredAllSignedStratMateoCheating()]
     
     print(f"Data timestamp range: {min_timestamp} to {max_timestamp}")
     print(f"Calibration/validation split at: {split_timestamp}")
