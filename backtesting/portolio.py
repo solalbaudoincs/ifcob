@@ -117,11 +117,13 @@ def get_fee_for_trade(coin_from: Coin, coin_to: Coin, fees_graph: FeesGraph) -> 
 
 class Portfolio:
     
-    def __init__(self, symbols: list[Coin], initial_amount: float) -> None:
+    def __init__(self, coins: list[Coin], initial_amount: float) -> None:
         self.positions: Dict[Coin, float] = {'EURC': initial_amount}  # (euro stable coin)
-        self.symbols = symbols
-        for symbol in symbols:
-            self.positions[symbol] = 0.0
+        """For each coin, self.position[coin] is the amount of coin owned"""
+        
+        self.coins = coins
+        for coin in coins:
+            self.positions[coin] = 0.0
     
     def get_value(self, market_data: MarketData) -> float:
         """Calculate total portfolio value in EURC"""

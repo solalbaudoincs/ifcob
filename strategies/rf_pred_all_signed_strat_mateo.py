@@ -23,12 +23,9 @@ class RFPredAllSignedStratMateo(Strategy):
         if prediction == -1:
             # sell signal
             return {"ETH" : -0.1}
-        elif prediction == 0 and current_portfolio["ETH"] < 9.9:
+        elif prediction == 0:
             # Hold signal
-            return {"ETH": 0.01}
-        elif prediction == 0 and current_portfolio["ETH"] > 10.1:
-            # Hold signal
-            return {"ETH": -0.01}
+            return {"ETH": self.target_eth - current_portfolio["ETH"]}
         elif prediction == 1:
             # buy signal
             return {"ETH": 0.1}
