@@ -1,6 +1,6 @@
-from ..backtesting.strategy import Strategy
-from ..backtesting.types import MarketData, Coin, Action, FeesGraph
-from ..backtesting.portolio import Portfolio
+from backtesting.strategy import Strategy
+from backtesting.types import MarketData, Action, FeesGraph
+from backtesting.portfolio import Portfolio
 import joblib
 
 class RFPredAllSignedStratMateo(Strategy):
@@ -18,7 +18,7 @@ class RFPredAllSignedStratMateo(Strategy):
 
     def get_action(self, data: MarketData, current_portfolio: Portfolio, fees_graph: FeesGraph) -> Action:
         # Implement the logic for making trades based on RF predictions
-        last_signal = data["XBT"].iloc[-1]
+        last_signal = data["XBT"].iloc[-1][["bid-ask-imbalance-5-levels", "spread", "inst-return", "V-bid-5-levels", "V-ask-5-levels", "slope-bid-5-levels", "slope-ask-5-levels"]]
         prediction = self.model.predict([last_signal])[0]
         if prediction == -1:
             # sell signal

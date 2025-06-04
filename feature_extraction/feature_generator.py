@@ -29,6 +29,7 @@ try:
         CumulativeVolumeFeature,
         InstReturnFeature,
         ReturnsAllSignedForXmsFeature,
+        CumulativeReturnVsVolatilityFeature,
     )
 except ImportError:
     from features import (
@@ -44,6 +45,7 @@ except ImportError:
         CumulativeVolumeFeature,
         InstReturnFeature,
         ReturnsAllSignedForXmsFeature,
+        CumulativeReturnVsVolatilityFeature,
     )
 
 current_dir = os.path.dirname(os.path.abspath(__file__))
@@ -111,6 +113,11 @@ class FeatureGenerator:
         self.register_feature(ReturnsAllSignedForXmsFeature(5))
         self.register_feature(ReturnsAllSignedForXmsFeature(10))
         self.register_feature(ReturnsAllSignedForXmsFeature(20))
+
+        # Cumulative Return 
+        self.register_feature(CumulativeReturnVsVolatilityFeature(5))
+        self.register_feature(CumulativeReturnVsVolatilityFeature(10))
+        self.register_feature(CumulativeReturnVsVolatilityFeature(20))
     
     def register_feature(self, feature: BaseFeature):
         """Register a new feature."""
