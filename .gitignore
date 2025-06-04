@@ -8,6 +8,7 @@ data/
 *.pickle
 
 # Python cache and temp files
+**/__pycache__
 */__pycache__
 __pycache__/
 *.pyc
