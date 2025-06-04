@@ -38,9 +38,11 @@ class CumulativeReturnVsVolatilityFeature(BaseFeature):
 
         avg_returns = sum_returns / window_lengths
         
-        #std_returns = mid_price.rolling(window=100).std()
-        var_returns = (sum_squares / window_lengths) - (avg_returns ** 2) 
-        std_returns = np.sqrt(np.maximum(var_returns, 1e-12))  # pour éviter sqrt(valeurs négatives)
+        std_returns = mid_price.rolling(window=100).std()
+        #var_returns = (sum_squares / window_lengths) - (avg_returns ** 2) 
+        #std_returns = np.sqrt(np.maximum(var_returns, 1e-12))  # pour éviter sqrt(valeurs négatives)
+
+    
 
         result = np.zeros(len(returns), dtype=int)
         result[avg_returns > std_returns] = 1
