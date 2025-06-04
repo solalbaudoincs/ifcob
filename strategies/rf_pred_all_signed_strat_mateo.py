@@ -2,6 +2,7 @@ from backtesting.strategy import Strategy
 from backtesting.types import MarketData, Action, FeesGraph
 from backtesting.portfolio import Portfolio
 import joblib
+import pandas as pd
 
 class RFPredAllSignedStratMateo(Strategy):
     """
@@ -18,7 +19,17 @@ class RFPredAllSignedStratMateo(Strategy):
 
     def get_action(self, data: MarketData, current_portfolio: Portfolio, fees_graph: FeesGraph) -> Action:
         # Implement the logic for making trades based on RF predictions
-        last_signal = data["XBT"].iloc[-1][["bid-ask-imbalance-5-levels", "spread", "inst-return", "V-bid-5-levels", "V-ask-5-levels", "slope-bid-5-levels", "slope-ask-5-levels"]]
+        rows = data["XBT"][-2:-1].copy()  # Get the last row of data for XBT
+        features = pd.DataFrame()
+        features["V-bid-5-levels"] = sum([rows[f"level-{i}-bid-volume"] for i in range(1, 6)])
+        features["V-ask-5-levels"] = sum([rows[f"level-{i}-ask-volume"] for i in range(1, 6)])
+        features["bid-ask-imbalance-5-levels"] = features["V-bid-5-levels"] - features["V-ask-5-levels"]
+        features["spread"] = rows[f"level-1-ask-price"] - rows[f"level-1-bid-price"]
+        mid_price = (rows[f"level-1-ask-price"] + rows[f"level-1-bid-price"]) / 2
+        features["inst-return"] = mid_price.diff()/rows.index.values.diff()
+        features["slope-bid-5-levels"] = (rows["level-5-bid-price"] - rows["level-1-bid-price"])/ features["V-bid-5-levels"]
+        features["slope-ask-5-levels"] = (rows["level-5-ask-price"] - rows["level-1-ask-price"])/ features["V-ask-5-levels"]
+        last_signal = features.iloc[-1]
         prediction = self.model.predict([last_signal])[0]
         if prediction == -1:
             # sell signal
