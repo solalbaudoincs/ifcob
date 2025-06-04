@@ -38,10 +38,10 @@ class CumulativeReturnVsVolatilityFeature(BaseFeature):
 
         avg_returns = sum_returns / window_lengths
 
-        std_returns = mid_price.rolling(window=100).std()
+        #std_returns = mid_price.rolling(window=100).std()
 
         result = np.zeros(len(returns), dtype=int)
-        result[avg_returns > std_returns] = 1
-        result[avg_returns < -std_returns] = -1
+        result[avg_returns >=0] = 1
+        result[avg_returns < 0] = -1
 
         return pd.Series(result, index=df_cleaned.index, name=self.name)
