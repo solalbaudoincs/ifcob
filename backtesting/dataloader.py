@@ -12,7 +12,7 @@ class OrderBookDataFromDf(OrderBookDataLoader):
         for coin, filepath in sources:
             df = pd.read_parquet(filepath)
             # Reset index to make timestamp a column and flatten multi-index if present
-            df = df.reset_index()
+            df["timestamp"] = df.index.values
             self.dfs[coin] = df
     
     def get_book_from_range(self, coin: Coin, start_time: TimeStep, end_time: TimeStep) -> pd.DataFrame:
@@ -39,6 +39,10 @@ class OrderBookDataFromDf(OrderBookDataLoader):
             coin : self.get_book_from_range(coin, start_time, end_time)
             for coin in self.dfs.keys()
         }
+    
+    def get_coin_at_timestep(self, coin: Coin, time_step: int) -> pd.DataFrame:
+        df = self.dfs[coin]
+        return df.iloc[[time_step]]
     
     def get_time_step_values(self) -> dict[Coin, np.ndarray]:
         return {

@@ -56,6 +56,26 @@ class OrderBookDataLoader(ABC):
         """Get all of the timesteps"""
         pass
     
+    @abstractmethod
+    def get_coin_at_timestep(self, coin: Coin, time_step: TimeStep) -> pd.DataFrame:
+        """
+        Get the order book data for a specific coin at a given time step.
+        
+        Args:
+            coin (Coin): The identifier for the cryptocurrency (e.g., 'BTC', 'ETH').
+            time_step (TimeStep): The specific timestamp to retrieve data for.
+        
+        Returns:
+            pd.DataFrame: A DataFrame containing the order book data for the specified coin
+                          at the given time step. If no data is available, returns an empty DataFrame.
+        
+        Example:
+            >>> loader = OrderBookDataFromDf(sources)
+            >>> btc_data = loader.get_coin_at_timestep('BTC', 1609459200000)
+            >>> print(btc_data.head())
+        """
+        pass
+
     def chronological_iterator(self):
         """
             Returns a generator that yields unique timestamps in chronological order from multiple coin datasets.

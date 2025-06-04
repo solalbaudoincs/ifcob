@@ -1,13 +1,12 @@
 from .types import OrderBookDataLoader, MarketData, Coin, TimeStep, Action, FeesGraph
 from .strategy import Strategy
-from .portfolio import Portfolio, estimate_price, get_fee_for_trade, get_market_impact_estimate
+from .portfolio import Portfolio, estimate_price, get_fee_for_trade
 import pandas as pd
 from typing import Dict, List, Tuple, Optional
 import numpy as np
 from dataclasses import dataclass
 from tqdm.rich import tqdm
 import time
-
 
 @dataclass
 class BacktestResult:
@@ -49,6 +48,7 @@ class OrderProcessor:
     def __init__(self, fees_graph: FeesGraph, dataloader: OrderBookDataLoader):
         self.fees_graph = fees_graph
         self.dataloader = dataloader
+        self.timesteps = dataloader.get_time_step_values()
 
     def process_order(self, coin: Coin, amount: float, action_type: str,
                       execution_timestamp: TimeStep, portfolio: Portfolio) -> Optional[Dict]:
@@ -59,8 +59,10 @@ class OrderProcessor:
         """
         try:
             # Get market data at execution time
-            execution_market_data = self._get_market_data_at_timestamp(
-                coin, execution_timestamp)
+            last_timestep_before_execution = self.timesteps[coin].searchsorted(execution_timestamp, side='left')
+            execution_market_data = self.dataloader.get_coin_at_timestep(
+                coin, last_timestep_before_execution
+            )
 
             if execution_market_data.empty:
                 print(
@@ -83,7 +85,7 @@ class OrderProcessor:
         """Get market data for a specific coin at the exact execution timestamp"""
         try:
             # Get a small range around the timestamp to find the closest data point
-            start_range = timestamp - 0.001  # 1ms before
+            start_range = 0  # 1ms before
             end_range = timestamp + 0.001    # 1ms after
 
             market_data = self.dataloader.get_books_from_range(
@@ -110,12 +112,9 @@ class OrderProcessor:
                            execution_timestamp: TimeStep, portfolio: Portfolio) -> Optional[Dict]:
         """Process buy order with market impact and fees at execution time"""
         try:
-            effective_price = get_market_impact_estimate(
-                coin_data, amount, 'buy')
-            if effective_price == 0:
-                effective_price = estimate_price(coin_data)
+            price = estimate_price(coin_data)
 
-            cost = amount * effective_price
+            cost = amount * price
 
             # Check if portfolio can execute trade at execution time
             if portfolio.can_execute_trade('EURC', coin, cost, self.fees_graph):
@@ -145,10 +144,8 @@ class OrderProcessor:
                             execution_timestamp: TimeStep, portfolio: Portfolio) -> Optional[Dict]:
         """Process sell order with market impact and fees at execution time"""
         try:
-            effective_price = get_market_impact_estimate(
-                coin_data, amount, 'sell')
-            if effective_price == 0:
-                effective_price = estimate_price(coin_data)
+            
+            price = estimate_price(coin_data)
 
             # Check if portfolio has enough coins to sell at execution time
             if portfolio.can_execute_trade(coin, 'EURC', amount, self.fees_graph):
@@ -159,13 +156,13 @@ class OrderProcessor:
                     coin, 'EURC', amount, self.fees_graph)
 
                 if success:
-                    proceeds = amount * effective_price
+                    proceeds = amount * price
                     return {
                         'execution_timestamp': execution_timestamp,
                         'coin': coin,
                         'action': 'sell',
                         'amount': amount,
-                        'effective_price': effective_price,
+                        'effective_price': price,
                         'proceeds': proceeds,
                         'fee': proceeds * fee_rate,
                         'fee_rate': fee_rate
@@ -219,11 +216,17 @@ class Backtester:
         unique_timesteps = len(set().union(
             *self.dataloader.get_time_step_values().values()))
 
+
+        steps = 0
         # Iterate through each timestep in chronological order
         for current_timestep, coin_indices in tqdm(self.dataloader.chronological_iterator(),
                                                    total=unique_timesteps,
                                                    unit_scale="timesteps",
                                                    desc="Backtesting"):
+            if steps > 400:
+                print("Stopping after 10,000 timesteps for testing purposes")
+                break
+            steps += 1
             try:
                 # FIRST: Process pending orders that should execute at or before current_timestep
                 # This ensures portfolios are updated with completed trades before making new decisions
@@ -232,7 +235,6 @@ class Backtester:
                 # Create windowed market data for current timestep
                 windowed_market_data = self._create_windowed_market_data(
                     current_timestep, coin_indices, self.config.window_size)
-
                 # Skip if no data available
                 if not windowed_market_data or all(data.empty for data in windowed_market_data.values()):
                     continue
@@ -537,7 +539,6 @@ class Backtester:
         Uses coin indices from chronological_iterator for efficient processing.
         """
         windowed_data = {}
-
         for coin in self.config.symbols:
             try:
                 if coin not in coin_indices:
@@ -558,6 +559,7 @@ class Backtester:
             except Exception as e:
                 print(
                     f"Warning: Could not get windowed data for {coin} at timestep {current_timestep}: {e}")
+                print(f"Could not get windowed data for {coin} at timestep {current_timestep}: {e}")
                 windowed_data[coin] = pd.DataFrame()
 
         return windowed_data

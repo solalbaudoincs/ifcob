@@ -37,16 +37,16 @@ def create_example_fees_graph() -> FeesGraph:
     """
     return {
         'EURC': [
-            ('XBT_EUR', 0.001),  # 0.1% fee to buy XBT with EURC
-            ('ETH_EUR', 0.001),  # 0.1% fee to buy ETH with EURC
+            ('XBT', 0.001),  # 0.1% fee to buy XBT with EURC
+            ('ETH', 0.001),  # 0.1% fee to buy ETH with EURC
         ],
-        'XBT_EUR': [
+        'XBT': [
             ('EURC', 0.0015),    # 0.15% fee to sell XBT for EURC (slightly higher)
-            ('ETH_EUR', 0.002),  # 0.2% fee for XBT->ETH direct trade
+            ('ETH', 0.002),  # 0.2% fee for XBT->ETH direct trade
         ],
-        'ETH_EUR': [
+        'ETH': [
             ('EURC', 0.0015),    # 0.15% fee to sell ETH for EURC
-            ('XBT_EUR', 0.002),  # 0.2% fee for ETH->XBT direct trade
+            ('XBT', 0.002),  # 0.2% fee for ETH->XBT direct trade
         ]
     }
 
@@ -68,8 +68,8 @@ def demonstrate_backtesting_architecture():
     
     # Real data sources using parquet files
     data_sources = [
-        ('XBT', 'data/preprocessed/DATA_0/XBT_EUR.parquet'),
-        ('ETH', 'data/preprocessed/DATA_0/ETH_EUR.parquet')
+        ('XBT', 'data/features/DATA_0/XBT_EUR.parquet'),
+        ('ETH', 'data/features/DATA_0/ETH_EUR.parquet')
     ]
     
     # Initialize dataloader first to get actual timestamps
@@ -79,15 +79,15 @@ def demonstrate_backtesting_architecture():
     all_timesteps = dataloader.get_time_step_values()
     min_timestamp = min(min(timesteps) for timesteps in all_timesteps.values())
     max_timestamp = max(max(timesteps) for timesteps in all_timesteps.values())
-    
+    print(f"Data timestamps range: {min_timestamp} to {max_timestamp}")
     # Split at 70% for calibration/validation
     split_timestamp = min_timestamp + 0.7 * (max_timestamp - min_timestamp)
     
     # Configuration for backtesting - uses actual timesteps from data
     config = BacktestConfig(
-        initial_capital=10000.0,
+        initial_capital=1000000000.0,
         fees_graph=fees_graph,
-        symbols=['XBT_EUR', 'ETH_EUR'],
+        symbols=['XBT', 'ETH'],
         window_size=10,  # Number of last rows for windowed market data
         
         # Proper validation split using actual timestamps
