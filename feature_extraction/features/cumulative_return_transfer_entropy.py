@@ -6,7 +6,7 @@ class CumulativeReturnTransferEntropy(BaseFeature):
     """Generate a feature based on average return vs. local volatility over a time window."""
     def __init__(self, time: float = 10):
         super().__init__(
-            name=f"return-vs-volatility-{time}-ms",
+            name=f"return-vs-volatility-transfer-entropy-{time}-ms",
             description="Compare cumulative average return to volatility over a window."
         )
         self.time = time
