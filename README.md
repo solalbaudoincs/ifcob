@@ -1,4 +1,4 @@
-# MVP : Information Flow in Crypto Order-Books
+# MVP : IFCOG: Information Flow in Crypto Order-Books
 
 Lagged correlations reveal when the past of one asset influences another's future; at the high
 frequency level, order-book data are asynchronous, making standard discrete-lag techniques
