@@ -1,6 +1,6 @@
-from ..backtesting.strategy import Strategy
-from ..backtesting.types import MarketData, Coin, Action, FeesGraph
-from ..backtesting.portolio import Portfolio
+from backtesting.strategy import Strategy
+from backtesting.types import MarketData, Action, FeesGraph
+from backtesting.portfolio import Portfolio
 import joblib
 
 class RFPredAllSignedStratMateo(Strategy):
