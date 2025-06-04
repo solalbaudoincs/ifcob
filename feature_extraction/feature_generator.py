@@ -30,6 +30,10 @@ try:
         InstReturnFeature,
         ReturnsAllSignedForXmsFeature,
         CumulativeReturnVsVolatilityFeature,
+        CumulativeReturnTransferEntropy,
+        SharpeRatioClassificationFeature,
+        SharpeRatioTransferEntropy,
+
     )
 except ImportError:
     from features import (
@@ -46,6 +50,9 @@ except ImportError:
         InstReturnFeature,
         ReturnsAllSignedForXmsFeature,
         CumulativeReturnVsVolatilityFeature,
+        CumulativeReturnTransferEntropy,
+        SharpeRatioClassificationFeature,
+        SharpeRatioTransferEntropy,
     )
 
 current_dir = os.path.dirname(os.path.abspath(__file__))
@@ -118,6 +125,11 @@ class FeatureGenerator:
         self.register_feature(CumulativeReturnVsVolatilityFeature(5))
         self.register_feature(CumulativeReturnVsVolatilityFeature(10))
         self.register_feature(CumulativeReturnVsVolatilityFeature(20))
+        self.register_feature(CumulativeReturnTransferEntropy(5))
+
+        #Sharpe ratio
+        self.register_feature(SharpeRatioClassificationFeature(5))
+        self.register_feature(SharpeRatioTransferEntropy(5))
     
     def register_feature(self, feature: BaseFeature):
         """Register a new feature."""
