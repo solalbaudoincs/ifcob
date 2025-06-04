@@ -15,7 +15,7 @@ class RFPredAllSignedStratMateo(Strategy):
     def __init__(self, window_size=5):
         super().__init__()
         self.model = joblib.load(f"predictors/mateo/rf_model_{window_size}ms.joblib")
-        self.target_eth = 10.0
+        self.target_eth = 100.0
 
 
     def get_action(self, data: MarketData, current_portfolio: Portfolio, fees_graph: FeesGraph) -> Action:
@@ -25,13 +25,13 @@ class RFPredAllSignedStratMateo(Strategy):
         prediction = self.model.predict(entry)[0]
         elapsed = time.time() - start_time
         print(f"get_action execution time: {elapsed:.6f} seconds")
-        if prediction == -1:
+        if prediction == -1 and current_portfolio.get_position("ETH") > 0:
             # sell signal
             return {"ETH" : -0.1}
         elif prediction == 0:
             # Hold signal
             return {"ETH": self.target_eth - current_portfolio.get_position("ETH")}
-        elif prediction == 1:
+        elif prediction == 1 and current_portfolio.get_position("ETH") < 200:
             # buy signal
             return {"ETH": 0.1}
         else:
@@ -48,7 +48,7 @@ class RFPredAllSignedStratMateoCheating(Strategy):
         super().__init__()
         self.model = joblib.load(f"predictors/mateo/rf_model_{window_size}ms.joblib")
         self.target_eth = 10.0
-        self.btc_df = pd.read_parquet("data/features/DATA_0/XBT_EUR.parquet")
+        self.btc_df = pd.read_parquet("data/features/DATA_1/XBT_EUR.parquet")
         self.prediction = self.model.predict(self.btc_df[["bid-ask-imbalance-5-levels", "spread", "inst-return", "V-bid-5-levels", "V-ask-5-levels", "slope-bid-5-levels", "slope-ask-5-levels"]])
         self.prediction = pd.Series(self.prediction, index=self.btc_df.index)
         print(self.prediction.shape)
@@ -56,14 +56,15 @@ class RFPredAllSignedStratMateoCheating(Strategy):
     def get_action(self, data: MarketData, current_portfolio: Portfolio, fees_graph: FeesGraph) -> Action:
         # Reorder features columns to match the model's expected input
         prediction = self.prediction.loc[data["XBT"].index[-1]]  # Get the prediction for the last timestamp
-        if prediction == -1:
+        if prediction == -1 and current_portfolio.get_position("ETH") > 0:
             # sell signal
             return {"ETH" : -0.1}
         elif prediction == 0:
             # Hold signal
             return {"ETH": self.target_eth - current_portfolio.get_position("ETH")}
-        elif prediction == 1:
+        elif prediction == 1 and current_portfolio.get_position("ETH") < 200:
             # buy signal
             return {"ETH": 0.1}
-        else:
+        elif prediction not in (-1, 0, 1):
             raise ValueError(f"Unexpected prediction value: {prediction}. Expected -1, 0, or 1.")
+        return {}

@@ -96,7 +96,7 @@ class Portfolio:
         
         fee_rate = get_fee_for_trade(coin_from, coin_to, fees_graph)
         required_amount = amount * (1 + fee_rate)
-        return True # allow shorting
+        return self.positions[coin_from] >= required_amount
  
     
     def execute_trade(self, coin_from: Coin, coin_to: Coin, amount: float, fees_graph: FeesGraph) -> bool:

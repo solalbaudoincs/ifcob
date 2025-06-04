@@ -5,9 +5,12 @@ from .order_processor import OrderProcessor
 import pandas as pd
 from typing import Dict, List, Tuple, Optional
 import numpy as np
-from dataclasses import dataclass
+from dataclasses import dataclass, asdict
 from tqdm.rich import tqdm
 import time
+import json
+import os
+from datetime import datetime
 
 @dataclass
 class BacktestResult:
@@ -73,7 +76,8 @@ class Backtester:
                 'calibration_trades': [],
                 'validation_trades': [],
                 'calibration_history': [],
-                'validation_history': []
+                'validation_history': [],
+                'recent_actions': []  # Track last 10 actions for status updates
             }
             # Initialize runtime tracking
             self.runtime_stats[strategy_name] = {
@@ -86,6 +90,7 @@ class Backtester:
         unique_timesteps = len(set().union(
             *self.dataloader.get_time_step_values().values()))
 
+        iteration_count = 0  # Track iterations for periodic updates
 
         # Iterate through each timestep in chronological order
         for current_timestep, coin_indices in tqdm(self.dataloader.chronological_iterator(),
@@ -93,6 +98,8 @@ class Backtester:
                                                    unit_scale="timesteps",
                                                    desc="Backtesting"):
             try:
+                iteration_count += 1
+                
                 # FIRST: Process pending orders that should execute at or before current_timestep
                 # This ensures portfolios are updated with completed trades before making new decisions
                 self._process_pending_orders(current_timestep, strategy_states)
@@ -117,6 +124,19 @@ class Backtester:
                         actions, action_runtime = self._get_timed_action(
                             strategy, windowed_market_data, portfolio, self.config.fees_graph, strategy_name
                         )
+
+                        # Track recent actions for status updates
+                        if actions:
+                            action_summary = {
+                                'timestamp': current_timestep,
+                                'phase': 'calibration',
+                                'actions': dict(actions),
+                                'portfolio_value': portfolio.get_value(windowed_market_data)
+                            }
+                            state['recent_actions'].append(action_summary)
+                            # Keep only last 10 actions
+                            if len(state['recent_actions']) > 10:
+                                state['recent_actions'].pop(0)
 
                         # Skip execution if action took too long
                         if self.config.skip_on_timeout and action_runtime > self.config.max_action_runtime:
@@ -146,6 +166,19 @@ class Backtester:
                             strategy, windowed_market_data, portfolio, self.config.fees_graph, strategy_name
                         )
 
+                        # Track recent actions for status updates
+                        if actions:
+                            action_summary = {
+                                'timestamp': current_timestep,
+                                'phase': 'validation',
+                                'actions': dict(actions),
+                                'portfolio_value': portfolio.get_value(windowed_market_data)
+                            }
+                            state['recent_actions'].append(action_summary)
+                            # Keep only last 10 actions
+                            if len(state['recent_actions']) > 10:
+                                state['recent_actions'].pop(0)
+
                         # Skip execution if action took too long
                         if self.config.skip_on_timeout and action_runtime > self.config.max_action_runtime:
                             print(
@@ -162,6 +195,10 @@ class Backtester:
                         portfolio_value = portfolio.get_value(
                             windowed_market_data)
                         history.append((current_timestep, portfolio_value))
+
+                # Print status update every 10,000 iterations
+                if iteration_count % 10000 == 0:
+                    self._print_status_update(iteration_count, current_timestep, strategy_states, windowed_market_data)
 
             except Exception as e:
                 print(f"Error at timestep {current_timestep}: {e}")
@@ -427,3 +464,344 @@ class Backtester:
                 windowed_data[coin] = pd.DataFrame()
 
         return windowed_data
+
+    def save_results_to_files(self, results: Dict[str, Tuple[BacktestResult, BacktestResult]], 
+                            output_dir: str = "backtest_results", 
+                            timestamp_suffix: bool = True,
+                            save_json: bool = True,
+                            save_csv: bool = True) -> Dict[str, str]:
+        """
+        Save backtest results to files in JSON and/or CSV format.
+        
+        Args:
+            results: Dictionary of strategy results from backtest()
+            output_dir: Directory to save files (will be created if doesn't exist)
+            timestamp_suffix: Whether to add timestamp to filenames
+            save_json: Whether to save results in JSON format
+            save_csv: Whether to save results in CSV format
+            
+        Returns:
+            Dictionary mapping file types to saved file paths
+        """
+        # Create output directory if it doesn't exist
+        os.makedirs(output_dir, exist_ok=True)
+        
+        # Generate timestamp suffix if requested
+        if timestamp_suffix:
+            timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
+            suffix = f"_{timestamp}"
+        else:
+            suffix = ""
+        
+        saved_files = {}
+        
+        if save_json:
+            json_path = self._save_results_as_json(results, output_dir, suffix)
+            saved_files['json'] = json_path
+            
+        if save_csv:
+            csv_paths = self._save_results_as_csv(results, output_dir, suffix)
+            saved_files.update(csv_paths)
+            
+        return saved_files
+    
+    def _save_results_as_json(self, results: Dict[str, Tuple[BacktestResult, BacktestResult]], 
+                             output_dir: str, suffix: str) -> str:
+        """Save results as JSON file with complete backtest information."""
+        json_data = {
+            "metadata": {
+                "export_timestamp": datetime.now().isoformat(),
+                "backtest_config": {
+                    "initial_capital": self.config.initial_capital,
+                    "symbols": self.config.symbols,
+                    "window_size": self.config.window_size,
+                    "calibration_end_time": self.config.calibration_end_time,
+                    "validation_start_time": self.config.validation_start_time,
+                    "max_action_runtime": self.config.max_action_runtime,
+                    "network_latency_delta": self.config.network_latency_delta
+                },
+                "runtime_stats": self.runtime_stats
+            },
+            "strategies": {}
+        }
+        
+        # Convert results to JSON-serializable format
+        for strategy_name, (cal_result, val_result) in results.items():
+            json_data["strategies"][strategy_name] = {
+                "calibration": self._backtest_result_to_dict(cal_result),
+                "validation": self._backtest_result_to_dict(val_result)
+            }
+        
+        # Save JSON file
+        json_filepath = os.path.join(output_dir, f"backtest_results{suffix}.json")
+        with open(json_filepath, 'w') as f:
+            json.dump(json_data, f, indent=2, default=str)
+        
+        print(f"✅ Saved complete backtest results to: {json_filepath}")
+        return json_filepath
+    
+    def _save_results_as_csv(self, results: Dict[str, Tuple[BacktestResult, BacktestResult]], 
+                            output_dir: str, suffix: str) -> Dict[str, str]:
+        """Save results as CSV files (summary metrics, trades, and portfolio evolution)."""
+        saved_files = {}
+        
+        # 1. Summary metrics CSV
+        summary_data = []
+        for strategy_name, (cal_result, val_result) in results.items():
+            summary_data.append({
+                'strategy': strategy_name,
+                'phase': 'calibration',
+                'total_return': cal_result.total_return,
+                'sharpe_ratio': cal_result.sharpe_ratio,
+                'max_drawdown': cal_result.max_drawdown,
+                'win_rate': cal_result.win_rate,
+                'transaction_costs': cal_result.transaction_costs,
+                'final_portfolio_value': cal_result.final_portfolio_value,
+                'total_trades': len(cal_result.trades)
+            })
+            summary_data.append({
+                'strategy': strategy_name,
+                'phase': 'validation',
+                'total_return': val_result.total_return,
+                'sharpe_ratio': val_result.sharpe_ratio,
+                'max_drawdown': val_result.max_drawdown,
+                'win_rate': val_result.win_rate,
+                'transaction_costs': val_result.transaction_costs,
+                'final_portfolio_value': val_result.final_portfolio_value,
+                'total_trades': len(val_result.trades)
+            })
+        
+        summary_df = pd.DataFrame(summary_data)
+        summary_path = os.path.join(output_dir, f"backtest_summary{suffix}.csv")
+        summary_df.to_csv(summary_path, index=False)
+        saved_files['summary_csv'] = summary_path
+        print(f"✅ Saved summary metrics to: {summary_path}")
+        
+        # 2. Portfolio evolution CSV
+        portfolio_data = []
+        for strategy_name, (cal_result, val_result) in results.items():
+            # Calibration phase
+            for timestamp, value in zip(cal_result.timestamps, cal_result.portfolio_values):
+                portfolio_data.append({
+                    'strategy': strategy_name,
+                    'phase': 'calibration',
+                    'timestamp': timestamp,
+                    'portfolio_value': value
+                })
+            # Validation phase
+            for timestamp, value in zip(val_result.timestamps, val_result.portfolio_values):
+                portfolio_data.append({
+                    'strategy': strategy_name,
+                    'phase': 'validation',
+                    'timestamp': timestamp,
+                    'portfolio_value': value
+                })
+        
+        portfolio_df = pd.DataFrame(portfolio_data)
+        portfolio_path = os.path.join(output_dir, f"portfolio_evolution{suffix}.csv")
+        portfolio_df.to_csv(portfolio_path, index=False)
+        saved_files['portfolio_csv'] = portfolio_path
+        print(f"✅ Saved portfolio evolution to: {portfolio_path}")
+        
+        # 3. Trades CSV
+        trades_data = []
+        for strategy_name, (cal_result, val_result) in results.items():
+            # Calibration trades
+            for trade in cal_result.trades:
+                trade_record = trade.copy()
+                trade_record['strategy'] = strategy_name
+                trade_record['phase'] = 'calibration'
+                trades_data.append(trade_record)
+            # Validation trades
+            for trade in val_result.trades:
+                trade_record = trade.copy()
+                trade_record['strategy'] = strategy_name
+                trade_record['phase'] = 'validation'
+                trades_data.append(trade_record)
+        
+        if trades_data:
+            trades_df = pd.DataFrame(trades_data)
+            trades_path = os.path.join(output_dir, f"trades_details{suffix}.csv")
+            trades_df.to_csv(trades_path, index=False)
+            saved_files['trades_csv'] = trades_path
+            print(f"✅ Saved trade details to: {trades_path}")
+        
+        return saved_files
+    
+    def _backtest_result_to_dict(self, result: BacktestResult) -> dict:
+        """Convert BacktestResult to dictionary for JSON serialization."""
+        result_dict = asdict(result)
+        
+        # Handle numpy types that aren't JSON serializable
+        for key, value in result_dict.items():
+            if isinstance(value, np.ndarray):
+                result_dict[key] = value.tolist()
+            elif isinstance(value, (np.integer, np.floating)):
+                result_dict[key] = value.item()
+        
+        return result_dict
+
+    def _print_status_update(self, iteration: int, current_timestep: TimeStep, 
+                           strategy_states: dict, windowed_market_data: MarketData):
+        """Print detailed status update every 10,000 iterations"""
+        print(f"\n{'='*80}")
+        print(f"STATUS UPDATE - Iteration {iteration:,} (Timestep: {current_timestep})")
+        print(f"{'='*80}")
+        
+        for strategy_name, state in strategy_states.items():
+            print(f"\n📊 {strategy_name}:")
+            
+            # Determine current phase and portfolio
+            if current_timestep <= self.config.calibration_end_time:
+                current_phase = "CALIBRATION"
+                current_portfolio = state['calibration_portfolio']
+                current_history = state['calibration_history']
+                current_trades = state['calibration_trades']
+            else:
+                current_phase = "VALIDATION"
+                current_portfolio = state['validation_portfolio']
+                current_history = state['validation_history']
+                current_trades = state['validation_trades']
+            
+            print(f"   Phase: {current_phase}")
+            
+            # Portfolio composition and value
+            current_value = current_portfolio.get_value(windowed_market_data)
+            initial_value = self.config.initial_capital
+            pnl = current_value - initial_value
+            pnl_percent = (pnl / initial_value) * 100
+            
+            print(f"   💰 Portfolio Value: ${current_value:,.2f} (PnL: ${pnl:+,.2f} / {pnl_percent:+.2f}%)")
+            
+            # Calculate cumulative metrics
+            if len(current_history) > 1:
+                values = [v for _, v in current_history]
+                
+                # Cumulative return
+                cumulative_return = (values[-1] - values[0]) / values[0] * 100
+                
+                # Cumulative Sharpe ratio
+                returns = np.diff(values) / np.array(values[:-1])
+                if len(returns) > 1 and np.std(returns) > 0:
+                    cumulative_sharpe = np.mean(returns) / np.std(returns) * np.sqrt(252 * 24 * 60)  # Annualized for minute data
+                else:
+                    cumulative_sharpe = 0.0
+                
+                # Maximum drawdown so far
+                peak = values[0]
+                max_drawdown = 0.0
+                for value in values:
+                    if value > peak:
+                        peak = value
+                    drawdown = (peak - value) / peak
+                    max_drawdown = max(max_drawdown, drawdown)
+                
+                print(f"   📈 Performance Metrics:")
+                print(f"      📊 Cumulative Return: {cumulative_return:+.2f}%")
+                print(f"      ⚡ Cumulative Sharpe: {cumulative_sharpe:.4f}")
+                print(f"      📉 Max Drawdown: {max_drawdown:.2%}")
+                print(f"      📏 Data Points: {len(current_history)}")
+            else:
+                print(f"   📈 Performance Metrics: Insufficient data (need >1 data points)")
+            
+            # Portfolio composition
+            print(f"   🏦 Holdings:")
+            
+            # Show EURC (base currency) first
+            eurc_amount = current_portfolio.positions.get('EURC', 0)
+            eurc_percent = (eurc_amount / current_value * 100) if current_value > 0 else 0
+            print(f"      💵 EURC: ${eurc_amount:,.2f} ({eurc_percent:.1f}%)")
+            
+            # Show other coin holdings
+            for coin in self.config.symbols:
+                amount = current_portfolio.positions.get(coin, 0)
+                if amount > 0:
+                    # Try to get current price for valuation
+                    try:
+                        if coin in windowed_market_data and not windowed_market_data[coin].empty:
+                            latest_data = windowed_market_data[coin].iloc[-1]
+                            if 'level-1-bid-price' in latest_data and 'level-1-ask-price' in latest_data:
+                                # Use mid price from bid-ask
+                                bid = latest_data['level-1-bid-price']
+                                ask = latest_data['level-1-ask-price']
+                                price = (bid + ask) / 2.0
+                            elif 'mid_price' in latest_data:
+                                price = latest_data['mid_price']
+                            elif 'close' in latest_data:
+                                price = latest_data['close']
+                            else:
+                                price = latest_data.iloc[0] if len(latest_data) > 0 else 0
+                            value = amount * price
+                            value_percent = (value / current_value * 100) if current_value > 0 else 0
+                            print(f"      🪙 {coin}: {amount:.6f} (≈${value:,.2f} @ ${price:.4f}, {value_percent:.1f}%)")
+                        else:
+                            print(f"      🪙 {coin}: {amount:.6f}")
+                    except Exception as e:
+                        print(f"      🪙 {coin}: {amount:.6f} (price unavailable)")
+            
+            # Trading activity
+            total_trades = len(current_trades)
+            if total_trades > 0:
+                recent_trades = current_trades[-5:]  # Last 5 trades
+                total_fees = sum(trade.get('fee', 0) for trade in current_trades)
+                
+                # Calculate win rate for current phase
+                winning_trades = sum(1 for trade in current_trades 
+                                   if trade.get('action') == 'sell' and trade.get('proceeds', 0) > trade.get('cost', 0))
+                sell_trades = sum(1 for trade in current_trades if trade.get('action') == 'sell')
+                win_rate = (winning_trades / sell_trades * 100) if sell_trades > 0 else 0
+                
+                print(f"   💼 Trading Activity:")
+                print(f"      📊 Total: {total_trades} trades, ${total_fees:.2f} fees")
+                print(f"      🎯 Win Rate: {win_rate:.1f}% ({winning_trades}/{sell_trades} profitable sells)")
+                
+                if recent_trades:
+                    print(f"      🔄 Recent Trades:")
+                    for trade in recent_trades:
+                        action = trade.get('action', 'unknown')
+                        coin = trade.get('coin', 'unknown')
+                        amount = trade.get('amount', 0)
+                        price = trade.get('price', 0)
+                        fee = trade.get('fee', 0)
+                        timestamp = trade.get('timestamp', 'unknown')
+                        print(f"        {action.upper()} {amount:.6f} {coin} @ ${price:.4f} (fee: ${fee:.4f}) [{timestamp}]")
+            else:
+                print(f"   💼 Trading Activity: No trades executed yet")
+            
+            # Recent actions (decisions)
+            recent_actions = state['recent_actions']
+            if recent_actions:
+                print(f"   🎯 Last {len(recent_actions)} Strategy Actions:")
+                for action_info in recent_actions[-5:]:  # Show last 5 actions
+                    timestamp = action_info['timestamp']
+                    phase = action_info['phase']
+                    actions = action_info['actions']
+                    portfolio_val = action_info['portfolio_value']
+                    
+                    if actions:
+                        action_str = ", ".join([f"{coin}: {amount:+.6f}" for coin, amount in actions.items() if abs(amount) > 1e-8])
+                        if action_str:
+                            print(f"      [{timestamp}] {phase}: {action_str} (portfolio: ${portfolio_val:,.2f})")
+                        else:
+                            print(f"      [{timestamp}] {phase}: No significant actions (portfolio: ${portfolio_val:,.2f})")
+                    else:
+                        print(f"      [{timestamp}] {phase}: No actions (portfolio: ${portfolio_val:,.2f})")
+            else:
+                print(f"   🎯 Strategy Actions: No recent actions recorded")
+            
+            # Runtime stats
+            runtime_stats = self.runtime_stats.get(strategy_name, {})
+            avg_runtime = runtime_stats.get('avg_runtime', 0) * 1000  # Convert to milliseconds
+            timeout_count = runtime_stats.get('timeout_count', 0)
+            action_count = runtime_stats.get('action_count', 0)
+            timeout_rate = (timeout_count / action_count * 100) if action_count > 0 else 0
+            
+            print(f"   ⏱️  Performance: {avg_runtime:.2f}ms avg, {timeout_count} timeouts ({timeout_rate:.1f}%)")
+        
+        # Global stats
+        pending_orders = len(self.pending_orders)
+        print(f"\n🌐 Global Stats:")
+        print(f"   ⏳ Pending orders: {pending_orders}")
+        print(f"   📅 Current phase: {'CALIBRATION' if current_timestep <= self.config.calibration_end_time else 'VALIDATION'}")
+        print(f"   🕐 Network latency: {self.config.network_latency_delta:.3f}s")
+        print(f"{'='*80}\n")

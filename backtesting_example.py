@@ -37,16 +37,16 @@ def create_example_fees_graph() -> FeesGraph:
     """
     return {
         'EURC': [
-            ('XBT', 0.001),  # 0.1% fee to buy XBT with EURC
-            ('ETH', 0.001),  # 0.1% fee to buy ETH with EURC
+            ('XBT', 0.00),  # 0.1% fee to buy XBT with EURC
+            ('ETH', 0.00),  # 0.1% fee to buy ETH with EURC
         ],
         'XBT': [
-            ('EURC', 0.0015),    # 0.15% fee to sell XBT for EURC (slightly higher)
-            ('ETH', 0.002),  # 0.2% fee for XBT->ETH direct trade
+            ('EURC', 0.00),    # 0.15% fee to sell XBT for EURC (slightly higher)
+            ('ETH', 0.00),  # 0.2% fee for XBT->ETH direct trade
         ],
         'ETH': [
-            ('EURC', 0.0015),    # 0.15% fee to sell ETH for EURC
-            ('XBT', 0.002),  # 0.2% fee for ETH->XBT direct trade
+            ('EURC', 0.00),    # 0.15% fee to sell ETH for EURC
+            ('XBT', 0.00),  # 0.2% fee for ETH->XBT direct trade
         ]
     }
 
@@ -68,8 +68,8 @@ def demonstrate_backtesting_architecture():
     
     # Real data sources using parquet files
     data_sources = [
-        ('XBT', 'data/features/DATA_0/XBT_EUR.parquet'),
-        ('ETH', 'data/features/DATA_0/ETH_EUR.parquet')
+        ('XBT', 'data/features/DATA_1/XBT_EUR.parquet'),
+        ('ETH', 'data/features/DATA_1/ETH_EUR.parquet')
     ]
     
     # Initialize dataloader first to get actual timestamps
@@ -85,7 +85,7 @@ def demonstrate_backtesting_architecture():
     
     # Configuration for backtesting - uses actual timesteps from data
     config = BacktestConfig(
-        initial_capital=1000000000.0,
+        initial_capital=1e6,
         fees_graph=fees_graph,
         symbols=['XBT', 'ETH'],
         window_size=10,  # Number of last rows for windowed market data
@@ -98,7 +98,7 @@ def demonstrate_backtesting_architecture():
     backtester = Backtester(dataloader, config)
     
     print("Backtesting Architecture Initialized Successfully")
-    strategies = [SimpleExampleStrategy(), RFPredAllSignedStratMateoCheating()]
+    strategies = [RFPredAllSignedStratMateoCheating()]
     
     print(f"Data timestamp range: {min_timestamp} to {max_timestamp}")
     print(f"Calibration/validation split at: {split_timestamp}")
