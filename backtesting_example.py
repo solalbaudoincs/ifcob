@@ -8,6 +8,7 @@ from backtesting.strategy import Strategy
 from backtesting.portolio import Portfolio
 from backtesting.backtest import Backtester, BacktestConfig
 from backtesting.dataloader import OrderBookDataFromDf
+from strategies.rf_pred_all_signed_strat_mateo import RFPredAllSignedStratMateo
 
 
 class SimpleExampleStrategy(Strategy):
@@ -67,8 +68,8 @@ def demonstrate_backtesting_architecture():
     
     # Real data sources using parquet files
     data_sources = [
-        ('XBT_EUR', 'data/preprocessed/DATA_0/XBT_EUR.parquet'),
-        ('ETH_EUR', 'data/preprocessed/DATA_0/ETH_EUR.parquet')
+        ('XBT', 'data/preprocessed/DATA_0/XBT_EUR.parquet'),
+        ('ETH', 'data/preprocessed/DATA_0/ETH_EUR.parquet')
     ]
     
     # Initialize dataloader first to get actual timestamps
@@ -97,7 +98,7 @@ def demonstrate_backtesting_architecture():
     backtester = Backtester(dataloader, config)
     
     print("Backtesting Architecture Initialized Successfully")
-    strategies = [SimpleExampleStrategy()]
+    strategies = [SimpleExampleStrategy(), RFPredAllSignedStratMateo()]
     
     print(f"Data timestamp range: {min_timestamp} to {max_timestamp}")
     print(f"Calibration/validation split at: {split_timestamp}")
