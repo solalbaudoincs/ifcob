@@ -9,6 +9,37 @@ out-of-sample performance (Sharpe, hit rate) and net profitability after transac
 
 ## Project Structure
 
+### Backtesting (`backtesting/`)
+The `backtesting` module evaluates trading strategies using historical order-book data.
+
+![Backtesting Workflow](/images/backtesting_workflow.png)
+
+**Key Features:**
+- Event-driven simulation engine
+- Support for custom strategies and signals
+- Realistic transaction cost modeling
+- Performance metrics: Sharpe ratio, hit rate, drawdown, and net P&L
+- Modular design for easy extension
+
+**Quick Start:**
+```python
+from backtesting import Backtester, Strategy
+
+# Define your strategy
+class MyStrategy(Strategy):
+    def generate_signals(self, data):
+        # Implement signal logic
+        pass
+
+# Run backtest
+bt = Backtester(data, MyStrategy, transaction_costs)
+results = bt.run()
+print(results.summary())
+```
+
+See `backtesting/README.md` for detailed documentation.
+
+
 ### Data Preprocessing (`preprocessing/`)
 
 The `preprocessing` module provides tools for converting raw cryptocurrency CSV data into a structured format suitable for feature extraction and analysis.
@@ -41,4 +72,3 @@ python preprocessing/preprocess_script.py -i data/raw/DATA_0 -o data/preprocesse
 ```
 
 See `preprocessing/README.md` for detailed documentation.
-
