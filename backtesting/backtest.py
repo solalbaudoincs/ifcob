@@ -1,6 +1,6 @@
 from .types import OrderBookDataLoader, MarketData, Coin, TimeStep, Action, FeesGraph
 from .strategy import Strategy
-from .portolio import Portfolio, estimate_price, get_fee_for_trade, get_market_impact_estimate
+from .portfolio import Portfolio, estimate_price, get_fee_for_trade, get_market_impact_estimate
 import pandas as pd
 from typing import Dict, List, Tuple, Optional
 import numpy as np

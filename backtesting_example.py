@@ -5,7 +5,7 @@ This demonstrates the complete backtesting system as per the consulting-style de
 
 from backtesting.types import MarketData, Action, FeesGraph
 from backtesting.strategy import Strategy
-from backtesting.portolio import Portfolio
+from backtesting.portfolio import Portfolio
 from backtesting.backtest import Backtester, BacktestConfig
 from backtesting.dataloader import OrderBookDataFromDf
 from strategies.rf_pred_all_signed_strat_mateo import RFPredAllSignedStratMateo
