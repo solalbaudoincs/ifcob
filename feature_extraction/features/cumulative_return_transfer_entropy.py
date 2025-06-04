@@ -2,7 +2,7 @@ from feature_extraction.base import BaseFeature
 import pandas as pd
 import numpy as np
 
-class CumulativeReturnVsVolatilityFeature(BaseFeature):
+class CumulativeReturnTransferEntropy(BaseFeature):
     """Generate a feature based on average return vs. local volatility over a time window."""
     def __init__(self, time: float = 10):
         super().__init__(
@@ -40,10 +40,9 @@ class CumulativeReturnVsVolatilityFeature(BaseFeature):
         
         #std_returns = mid_price.rolling(window=100).std()
         var_returns = (sum_squares / window_lengths) - (avg_returns ** 2) 
-        std_returns = np.sqrt(np.maximum(var_returns, 1e-12))  # pour éviter sqrt(valeurs négatives)
 
         result = np.zeros(len(returns), dtype=int)
-        result[avg_returns > std_returns] = 1
-        result[avg_returns < -std_returns] = -1
+        result[avg_returns >= 0] = 1
+        result[avg_returns < 0] = -1
 
         return pd.Series(result, index=df_cleaned.index, name=self.name)
