@@ -2,12 +2,14 @@ from feature_extraction.base import BaseFeature
 import pandas as pd
 import numpy as np
 
-class CumulativeReturnVsVolatilityFeature(BaseFeature):
-    """Generate a feature based on average return vs. local volatility over a time window."""
+
+class SharpeRatioTransferEntropy(BaseFeature):
+    """Classify signal into 3 classes using a dynamically calibrated Sharpe-like ratio."""
+
     def __init__(self, time: float = 10):
         super().__init__(
-            name=f"return-vs-volatility-{time}-ms",
-            description="Compare cumulative average return to volatility over a window."
+            name=f"sharpe-ratio-transfer-entropy-{time}-ms",
+            description="Sharpe-like ratio with dynamic threshold to enforce ~10%-80%-10% class split."
         )
         self.time = time
 
@@ -18,32 +20,33 @@ class CumulativeReturnVsVolatilityFeature(BaseFeature):
         idx_next = np.searchsorted(timestamps, target_times, side="left")
         idx_next[idx_next >= len(timestamps)] = len(timestamps) - 1
 
+        # Mid-price and returns
         mid_price = (df_cleaned["level-1-bid-price"] + df_cleaned["level-1-ask-price"]) / 2
         returns = mid_price.diff().fillna(0).to_numpy()
 
-        # Cumulative sum and cumulative square sum
+        # Cumulative sums
         cumsum = np.cumsum(returns)
         cumsum2 = np.cumsum(returns ** 2)
-
-        # Padding for easier slicing
         cumsum_padded = np.concatenate([[0], cumsum])
         cumsum2_padded = np.concatenate([[0], cumsum2])
 
         start_idx = np.arange(len(returns))
         end_idx = idx_next
-
-        sum_returns = cumsum_padded[end_idx + 1] - cumsum_padded[start_idx]
-        sum_squares = cumsum2_padded[end_idx + 1] - cumsum2_padded[start_idx]
         window_lengths = (end_idx - start_idx + 1).astype(float)
 
-        avg_returns = sum_returns / window_lengths
-        
-        #std_returns = mid_price.rolling(window=100).std()
-        var_returns = (sum_squares / window_lengths) - (avg_returns ** 2) 
-        std_returns = np.sqrt(np.maximum(var_returns, 1e-12))  # pour éviter sqrt(valeurs négatives)
+        # Moyenne et écart-type
+        sum_returns = cumsum_padded[end_idx + 1] - cumsum_padded[start_idx]
+        sum_squares = cumsum2_padded[end_idx + 1] - cumsum2_padded[start_idx]
+        mean_returns = sum_returns / window_lengths
+        var_returns = (sum_squares / window_lengths) - (mean_returns ** 2)
+        std_returns = np.sqrt(np.maximum(var_returns, 1e-12))
 
-        result = np.zeros(len(returns), dtype=int)
-        result[avg_returns > std_returns] = 1
-        result[avg_returns < -std_returns] = -1
+        # Sharpe-like ratio
+        sharpe_like = mean_returns / std_returns
+
+        # Classification
+        result = np.zeros(len(sharpe_like), dtype=int)
+        result[sharpe_like >= 0] = 1
+        result[sharpe_like < 0] = -1
 
         return pd.Series(result, index=df_cleaned.index, name=self.name)

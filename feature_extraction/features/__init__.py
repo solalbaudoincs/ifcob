@@ -11,3 +11,6 @@ from .cumulative_volume import CumulativeVolumeFeature
 from .inst_return import InstReturnFeature
 from .returns_all_signed_for_xms import ReturnsAllSignedForXmsFeature
 from .cumulative_return import CumulativeReturnVsVolatilityFeature
+from .sharpe_ratio import SharpeRatioClassificationFeature
+from .sharpe_ratio_transfer_entropy import SharpeRatioTransferEntropy
+from .cumulative_return_transfer_entropy import CumulativeReturnTransferEntropy
