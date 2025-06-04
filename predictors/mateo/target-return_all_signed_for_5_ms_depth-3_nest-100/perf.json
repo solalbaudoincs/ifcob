@@ -1,0 +1,71 @@
+{
+  "model": "random_forest_mateo",
+  "hyperparameters": {
+    "bootstrap": true,
+    "ccp_alpha": 0.0,
+    "class_weight": "balanced",
+    "criterion": "gini",
+    "max_depth": 3,
+    "max_features": "sqrt",
+    "min_impurity_decrease": 0.0,
+    "min_samples_leaf": 1,
+    "min_samples_split": 2,
+    "min_weight_fraction_leaf": 0.0,
+    "n_estimators": 100,
+    "n_jobs": -1,
+    "oob_score": false,
+    "random_state": 42,
+    "verbose": 0,
+    "warm_start": false,
+    "feature_columns": [
+      "bid-ask-imbalance-5-levels",
+      "spread",
+      "inst-return",
+      "V-bid-5-levels",
+      "V-ask-5-levels",
+      "slope-bid-5-levels",
+      "slope-ask-5-levels"
+    ],
+    "target_column": "return-all-signed-for-5-ms"
+  },
+  "performance": {
+    "accuracy": 0.66677,
+    "report": {
+      "0": {
+        "precision": 0.1577762619372442,
+        "recall": 0.34900037721614485,
+        "f1-score": 0.21731062830299472,
+        "support": 13255.0
+      },
+      "1": {
+        "precision": 0.87791454442558,
+        "recall": 0.7153265317885757,
+        "f1-score": 0.7883245990154042,
+        "support": 86745.0
+      },
+      "accuracy": 0.66677,
+      "macro avg": {
+        "precision": 0.5178454031814121,
+        "recall": 0.5321634545023604,
+        "f1-score": 0.5028176136591994,
+        "support": 100000.0
+      },
+      "weighted avg": {
+        "precision": 0.7824602150817511,
+        "recall": 0.66677,
+        "f1-score": 0.7126366971974745,
+        "support": 100000.0
+      }
+    },
+    "confusion_matrix": [
+      [
+        4626,
+        8629
+      ],
+      [
+        24694,
+        62051
+      ]
+    ]
+  }
+}
