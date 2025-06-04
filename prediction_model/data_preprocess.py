@@ -20,42 +20,54 @@ class DataPreprocessor:
                     features_df: pd.DataFrame, 
                     target_df: pd.DataFrame,
                     feature_columns: list[str],
+                    features_columns_target: list[str] = None,
                     target_column: str = "return-all-signed-for-5-ms",
-                    test_size: float = 0.2
-                    ) -> Tuple[np.ndarray, np.ndarray, np.ndarray, np.ndarray]:
+                    test_size: float = 0.2,
+                    target_lag: int = 1
+    ) -> Tuple[np.ndarray, np.ndarray, np.ndarray, np.ndarray]:        
         """
         Prépare les données pour l'entraînement AdaBoost selon la méthode du notebook et effectue un split train/test.
 
         Args:
-            features_df: DataFrame avec les features (ex: XBT data)
+            features_df: DataFrame avec les features principales (ex: XBT data)
             target_df: DataFrame avec le target (ex: ETH data)  
-            feature_columns: Liste des colonnes features à sélectionner
+            feature_columns: Liste des colonnes features à sélectionner depuis features_df
+            features_columns_target: Liste des colonnes features à sélectionner depuis target_df (optionnel)
             target_column: Nom de la colonne target à utiliser ou convertir
-            convert_target: Si True, convertit la target_column en signaux si nécessaire
             test_size: Proportion du jeu de test (float entre 0 et 1)
+            target_lag: Décalage (en lignes) à appliquer sur les features du target_df (default=1)
 
         Returns:
             Tuple (X_train, X_test, y_train, y_test) où:
-            - X_train: features pour l'entraînement
-            - X_test: features pour le test
+            - X_train: features combinées pour l'entraînement
+            - X_test: features combinées pour le test
             - y_train: labels encodés pour l'entraînement
             - y_test: labels encodés pour le test
         """
-        print("=== PRÉPARATION DES DONNÉES ADABOOST ===")
         
+        print("=== PRÉPARATION DES DONNÉES ADABOOST ===")
         
         # Étape 1: Extraction du target
         print(f"Étape 1: Extraction du target '{target_column}'...")
         target = target_df[target_column]
         print(f"Target shape: {target.shape}")
         
-        # Étape 2: Sélection des features
-        print("Étape 2: Sélection des features...")
+        # Étape 2: Sélection des features du features_df
+        print("Étape 2: Sélection des features du features_df...")
         print(f"Features sélectionnées: {feature_columns}")
         pre_features = features_df[feature_columns]
         print(f"Features shape avant dropna: {pre_features.shape}")
         pre_features = pre_features.dropna()
         print(f"Features shape après dropna: {pre_features.shape}")
+        # Étape 2b: Sélection des features du target_df (si spécifiées)
+        target_features = None
+        if features_columns_target is not None and len(features_columns_target) > 0:
+            print("Étape 2b: Sélection des features du target_df avec lag...")
+            print(f"Features target sélectionnées: {features_columns_target}")
+            target_features = target_df[features_columns_target].shift(target_lag)
+            print(f"Target features shape après shift (lag={target_lag}): {target_features.shape}")
+            target_features = target_features.dropna()
+            print(f"Target features shape après dropna: {target_features.shape}")
         
         # Étape 3: Alignement temporel (méthode exacte du notebook)
         print("Étape 3: Alignement temporel avec np.searchsorted...")
@@ -69,10 +81,22 @@ class DataPreprocessor:
         
         print(f"Features après filtrage: {pre_features_filtered.shape}")
         print(f"Indices filtrés: {len(filtered_indices)}")
-          # Étape 4: Création des DataFrames nettoyés avec les colonnes sélectionnées
+        
+        # Étape 4: Création des DataFrames nettoyés avec les colonnes sélectionnées
         print("Étape 4: Création des DataFrames nettoyés...")
-        # data_clean contient seulement les features sélectionnées après alignement
         data_clean = pre_features_filtered.reset_index(drop=True)
+        
+        # Si des features du target_df sont spécifiées, les ajouter après synchronisation
+        if target_features is not None:
+            print("Étape 4b: Ajout des features du target_df après synchronisation et lag...")
+            # Synchroniser les target_features avec les mêmes indices que les features principales
+            target_features_aligned = target_features.iloc[:len(filtered_indices)].reset_index(drop=True)
+            print(f"Target features après alignement: {target_features_aligned.shape}")
+            # Concaténer les features
+            data_clean = pd.concat([data_clean, target_features_aligned], axis=1)
+            print(f"Features combinées shape: {data_clean.shape}")
+            print(f"Colonnes finales: {list(data_clean.columns)}")
+        
         # target_clean contient le target aligné sur les mêmes indices
         target_clean = target.iloc[:len(filtered_indices)].reset_index(drop=True)
 
