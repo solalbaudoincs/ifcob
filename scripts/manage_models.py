@@ -69,18 +69,6 @@ def train(args):
         if not args.save:
             args.save = model_path
     X_train, X_test, y_train, y_test = ModelManager.prepare_data(
-<<<<<<< HEAD
-        args.features, args.target, test_size=args.test_size, n_samples=args.n_samples, model_name=args.model)
-    model = ModelManager.get_model(args.model)
-    # If --params is provided, update args with those hyperparameters
-    if hasattr(args, 'params') and args.params:
-        try:
-            user_params = json.loads(args.params)
-            print(f"Using user-specified hyperparameters: {user_params}")
-            args.__dict__.update(user_params)
-        except Exception as e:
-            print(f"Could not parse --params JSON: {e}")
-=======
         args.features, args.target, test_size=args.test_size, n_samples=args.n_samples)
     # Collect supported hyperparameters
     model_kwargs = {}
@@ -91,7 +79,6 @@ def train(args):
     if getattr(args, 'learning_rate', None) is not None:
         model_kwargs['learning_rate'] = args.learning_rate
     model = ModelManager.get_model(args.model, **model_kwargs)
->>>>>>> bae3f6d02a56a6db29b5e3243fa776fa2fe204ca
     # Génération d'un nom de fichier reconnaissable basé sur quelques caractéristiques du modèle
     def get_model_id(model, args):
         import re
@@ -219,13 +206,8 @@ def test(args):
 def compare(args):
     from sklearn.model_selection import ParameterGrid
     X_train, X_test, y_train, y_test = ModelManager.prepare_data(
-<<<<<<< HEAD
-        args.features, args.target, test_size=args.test_size, model_name=args.model)
-    param_grid = json.loads(args.param_grid)
-=======
         args.features, args.target, test_size=args.test_size)
     # param_grid = json.loads(args.param_grid)
->>>>>>> bae3f6d02a56a6db29b5e3243fa776fa2fe204ca
     best_acc = -1
     best_params = None
     # for params in ParameterGrid(param_grid):
