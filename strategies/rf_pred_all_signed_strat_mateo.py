@@ -108,3 +108,49 @@ class RFPredAllSignedStratMateoCheating(Strategy):
         elif prediction not in (-1, 0, 1):
             raise ValueError(f"Unexpected prediction value: {prediction}. Expected -1, 0, or 1.")
         return {}
+
+class GenericSignalBasedStrategy(Strategy):
+    """
+    Stratégie de trading générique fondée sur des signaux -1, 0, 1 d’un modèle IA.
+
+    - 1 → acheter buy_qty d'ETH
+    - 0 → ne rien faire
+    - -1 → vendre sell_qty d'ETH (si position suffisante)
+
+    Paramètres :
+    - model_path (str): chemin vers le modèle joblib
+    - buy_qty (float): quantité à acheter si signal == 1
+    - sell_qty (float): quantité à vendre si signal == -1
+    - features (list): liste des colonnes à utiliser
+    """
+
+    def __init__(self, model_path: str, buy_qty: float = 0.1, sell_qty: float = 0.1,
+                 features: list = None):
+        super().__init__()
+        self.model = joblib.load(model_path)
+        self.buy_qty = buy_qty
+        self.sell_qty = sell_qty
+        self.features = features or [
+            "bid-ask-imbalance-5-levels",
+            "spread",
+            "inst-return",
+            "V-bid-5-levels",
+            "V-ask-5-levels",
+            "slope-bid-5-levels",
+            "slope-ask-5-levels"
+        ]
+
+    def get_action(self, data: MarketData, current_portfolio: Portfolio, fees_graph: FeesGraph) -> Action:
+        xbt_data = data["XBT"]
+        latest_features = xbt_data[self.features].iloc[[-1]]  # Shape (1, n_features)
+
+        signal = self.model.predict(latest_features)[0]
+
+        eth_position = current_portfolio.get_position("ETH")
+
+        if signal == 1:
+            return {"ETH": self.buy_qty}
+        elif signal == -1 and eth_position >= self.sell_qty:
+            return {"ETH": -self.sell_qty}
+        else:
+            return {}
