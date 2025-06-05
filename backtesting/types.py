@@ -4,54 +4,60 @@ import numpy as np
 from typing import TypeAlias
 
 Coin     : TypeAlias = str
-"""Name of cryptocurency"""
+"""Symbol for a traded asset (e.g., 'ETH', 'XBT', 'EURC')."""
 Filepath : TypeAlias = str
 OrderBookData : TypeAlias = pd.DataFrame 
-"""A df w/ price /volume and extracted features"""
+"""A DataFrame with price, volume, and extracted features for a single coin."""
 
 MarketData : TypeAlias = dict[Coin, OrderBookData]
+"""Dictionary mapping coin symbols to their respective market data DataFrames."""
 TimeStep : TypeAlias = float  # Changed from str to float for numeric timestamps
+"""Timestamp for a market data row (float, usually ms since epoch)."""
 
-# Move these type definitions here to avoid circular imports
 Action: TypeAlias = dict[Coin, float]
-"""For each symbol, how much to buy/sell"""
+"""Dictionary mapping coin symbols to trade amounts (positive for buy, negative for sell)."""
 FeePrice: TypeAlias = float
 
 FeesGraph: TypeAlias = dict[
     Coin,
     list[tuple[Coin, FeePrice]]
 ]
-"""oriented graph of transaction from coin to coin"""
+"""Dictionary mapping coin symbols to a list of (target_coin, fee_rate) tuples."""
 
 class OrderBookDataLoader(ABC):
+    """
+    Abstract base class for loading order book data for backtesting.
+
+    Methods:
+        - get_books_from_range(start_time, end_time): Get market data for all symbols within the specified time range.
+        - get_time_step_values(): Get all available timesteps for each coin in the dataset.
+        - get_coin_at_timestep(coin, time_step): Get the order book data for a specific coin at a given time step.
+        - chronological_iterator(): Generator yielding unique timestamps in chronological order from multiple coin datasets.
+    """
     
     def __init__(self):
         pass
     
     @abstractmethod
     def get_books_from_range(self, start_time: TimeStep, end_time: TimeStep) -> MarketData:
-        """Get market data for all symbols within the specified time range"""
+        """
+        Get market data for all symbols within the specified time range.
+
+        Args:
+            start_time (TimeStep): Start of the time range.
+            end_time (TimeStep): End of the time range.
+        Returns:
+            MarketData: Dictionary mapping coin symbols to DataFrames of market data within the range.
+        """
         pass
     
     @abstractmethod
     def get_time_step_values(self) -> dict[Coin, np.ndarray]:
         """
         Get all available timesteps for each coin in the dataset.
-        
-        Returns a dictionary mapping each coin to a numpy array containing
-        all the timestamp values available in the order book data for that coin.
-        The timestamps are typically sorted in ascending order.
-        
+
         Returns:
-            dict[Coin, np.ndarray]: A dictionary where keys are coin identifiers
-                                   and values are numpy arrays of timestamp values
-                                   representing all available time steps for each coin.
-        
-        Example:
-            >>> loader = OrderBookDataFromDf(sources)
-            >>> timesteps = loader.get_time_step_values()
-            >>> timesteps['BTC']  # Returns array of all BTC timestamps
-            array([1609459200000, 1609459260000, 1609459320000, ...])
+            dict[Coin, np.ndarray]: Dictionary mapping each coin to a numpy array of all available timestamps.
         """
         """Get all of the timesteps"""
         pass
@@ -60,37 +66,20 @@ class OrderBookDataLoader(ABC):
     def get_coin_at_timestep(self, coin: Coin, time_step: TimeStep) -> pd.DataFrame:
         """
         Get the order book data for a specific coin at a given time step.
-        
+
         Args:
             coin (Coin): The identifier for the cryptocurrency (e.g., 'BTC', 'ETH').
             time_step (TimeStep): The specific timestamp to retrieve data for.
-        
         Returns:
-            pd.DataFrame: A DataFrame containing the order book data for the specified coin
-                          at the given time step. If no data is available, returns an empty DataFrame.
-        
-        Example:
-            >>> loader = OrderBookDataFromDf(sources)
-            >>> btc_data = loader.get_coin_at_timestep('BTC', 1609459200000)
-            >>> print(btc_data.head())
+            pd.DataFrame: DataFrame containing the order book data for the specified coin at the given time step. If no data is available, returns an empty DataFrame.
         """
         pass
 
     def chronological_iterator(self):
         """
-            Returns a generator that yields unique timestamps in chronological order from multiple coin datasets.
-            This function iterates through timesteps from multiple coins and yields each unique
-            timestamp exactly once, along with the current indices for all coins. It finds the
-            next minimum timestamp across all coins and advances the corresponding indices.
-            Yields:
-                tuple: A tuple containing:
-                    - min_time: The next chronological timestamp across all coins
-                    - coin_indices: Dictionary mapping coin names to their current indices
-            Notes:
-                - Ensures each timestamp is yielded only once using a seen set
-                - Automatically removes coins that have exhausted their timesteps
-                - Maintains chronological order across all coin datasets
-            """
+        Returns a generator that yields unique timestamps in chronological order from multiple coin datasets.
+        Each yield is a tuple (min_time, coin_indices), where min_time is the next chronological timestamp and coin_indices is a dictionary mapping coin names to their current indices.
+        """
         # Get all timestep values for all coins
         all_timesteps = self.get_time_step_values()
         
@@ -136,8 +125,19 @@ class OrderBookDataLoader(ABC):
         return indices_generator()
 
 class Strategy(ABC):
-    
+    """
+    Abstract base class for trading strategies. All custom strategies should implement get_action.
+    """
     @abstractmethod
-    def get_action(self, data: MarketData, current_portfolio, fees: TimeStep):
-        """Generate trading actions based on market data and current portfolio"""
+    def get_action(self, data: MarketData, current_portfolio, fees_graph: FeesGraph):
+        """
+        Generate trading actions based on market data and current portfolio.
+
+        Args:
+            data (MarketData): Dictionary of DataFrames for each symbol, containing recent market features.
+            current_portfolio (Portfolio): The current portfolio state.
+            fees_graph (FeesGraph): The transaction fee structure.
+        Returns:
+            Action: Dictionary of {symbol: amount} to trade. Positive for buy, negative for sell.
+        """
         pass

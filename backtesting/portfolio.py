@@ -44,6 +44,20 @@ def get_fee_for_trade(coin_from: Coin, coin_to: Coin, fees_graph: FeesGraph) -> 
 
 
 class Portfolio:
+    """
+    Portfolio class for managing asset positions and executing trades.
+
+    Methods:
+        - get_position(coin): Returns the current position for a given coin.
+        - can_execute_trade(coin_from, coin_to, amount, fees_graph): Checks if a trade can be executed given current balances and fees.
+        - execute_trade(coin_from, coin_to, price, amount, fees_graph, reverse=False): Executes a trade, updating positions and applying fees.
+        - get_value(market_data): Returns the total portfolio value in EURC using the latest market data.
+
+    Example usage:
+        portfolio = Portfolio(['ETH', 'XBT'], 10000)
+        if portfolio.can_execute_trade('EURC', 'ETH', 100, fees_graph):
+            portfolio.execute_trade('EURC', 'ETH', 2000, 1, fees_graph)
+    """
     
     def __init__(self, coins: list[Coin], initial_amount: float) -> None:
         self.positions: Dict[Coin, float] = {'EURC': initial_amount}  # (euro stable coin)
@@ -53,34 +67,23 @@ class Portfolio:
         for coin in coins:
             self.positions[coin] = 0.0
     
-    def get_value(self, market_data: MarketData) -> float:
-        """Calculate total portfolio value in EURC"""
-        total_value = self.positions.get('EURC', 0.0)
-        
-        for coin, amount in self.positions.items():
-            if coin != 'EURC' and amount != 0:
-                if coin in market_data:
-                    price = estimate_price(market_data[coin], "bid")
-                    total_value += amount * price
-                else:
-                    # If no market data available, assume zero value (or could raise error)
-                    pass
-
-        return total_value
-    
-    def update_position(self, coin: Coin, amount: float) -> None:
-        """Update position for a specific coin"""
-        if coin in self.positions:
-            self.positions[coin] += amount
-        else:
-            self.positions[coin] = amount
-    
     def get_position(self, coin: Coin) -> float:
         """Get current position for a specific coin"""
         return self.positions.get(coin, 0.0)
     
-    def can_execute_trade(self, coin_from: Coin, coin_to: Coin, amount: float, fees_graph: FeesGraph) -> bool:
-        """Check if a trade can be executed given current positions and fees graph"""
+    def can_execute_trade(self, coin_from, coin_to, amount, fees_graph):
+        """
+        Check if the portfolio has enough of coin_from to execute a trade for the specified amount (including fees).
+
+        Args:
+            coin_from (str): The coin to be spent.
+            coin_to (str): The coin to be acquired.
+            amount (float): The amount of coin_from required for the trade (including fees).
+            fees_graph (FeesGraph): The fee structure for trades.
+
+        Returns:
+            bool: True if the trade can be executed, False otherwise.
+        """
         if coin_from not in self.positions:
             return False
         
@@ -89,20 +92,26 @@ class Portfolio:
         return self.positions[coin_from] >= required_amount
  
     
-    def execute_trade(self, coin_from: Coin, coin_to: Coin, ratio : float, volume : float, fees_graph: FeesGraph, reverse = False) -> bool:
-        """Execute a trade between two coins using fees graph, returns True if successful
-            ratio is the price ratio coin_from/coin_to by default, volume is the amount of coin_to to obtained
-            Thoses can be reversed by setting reverse=True, in which case ration is coin_to/coin_from and volume is the amount of coin_from sold
+    def execute_trade(self, coin_from, coin_to, ratio, volume, fees_graph, reverse=False):
         """
+        Execute a trade between two coins at a given price and amount, applying transaction fees as specified in the fees graph.
 
-        #print(f"Executing trade: {coin_from} -> {coin_to}, ratio: {ratio}, volume: {volume}, reverse: {reverse} ")
+        Args:
+            coin_from (str): The coin being spent (e.g., 'EURC' for a buy, 'ETH' for a sell).
+            coin_to (str): The coin being acquired (e.g., 'ETH' for a buy, 'EURC' for a sell).
+            price (float): The execution price per unit of coin_to in terms of coin_from (or the opposite if reverse=True).
+            amount (float): The amount of coin_to obtained (or the amount of coin_from sold if reverse=True).
+            fees_graph (FeesGraph): The fee structure for trades.
+            reverse (bool): If True, executes the trade in reverse (used for sell orders).
+
+        Returns:
+            bool: True if the trade was executed and positions updated, False otherwise.
+        """
 
         if reverse and (not self.can_execute_trade(coin_from, coin_to, volume , fees_graph)):
             return False
         elif (not reverse) and (not self.can_execute_trade(coin_from, coin_to, volume*ratio, fees_graph)):
             return False
-        
-        #print(f"positions before trade: {self.positions}")
         
         try:
             fee_rate = get_fee_for_trade(coin_from, coin_to, fees_graph)
@@ -120,9 +129,30 @@ class Portfolio:
                 self.update_position(coin_from, -total_ratio * volume)
                 self.update_position(coin_to, volume)
             
-            #print(f"positions after trade: {self.positions}")
-
             return True
         
         except ValueError:
             return False
+    
+    def get_value(self, market_data):
+        """
+        Calculate the total portfolio value in EURC using the latest market data.
+
+        Args:
+            market_data (MarketData): Dictionary of DataFrames for each symbol, containing recent market prices.
+
+        Returns:
+            float: The total portfolio value in EURC.
+        """
+        total_value = self.positions.get('EURC', 0.0)
+        
+        for coin, amount in self.positions.items():
+            if coin != 'EURC' and amount != 0:
+                if coin in market_data:
+                    price = estimate_price(market_data[coin], "bid")
+                    total_value += amount * price
+                else:
+                    # If no market data available, assume zero value (or could raise error)
+                    pass
+
+        return total_value

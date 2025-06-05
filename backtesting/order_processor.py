@@ -5,7 +5,18 @@ from typing import Dict, Optional
 
 
 class OrderProcessor:
-    """Separate order processing component as shown in architecture"""
+    """
+    OrderProcessor handles the execution of buy and sell orders for a portfolio using market data and a fee structure.
+
+    Methods:
+        - process_order(coin, amount, action_type, execution_timestamp, portfolio): Processes a buy or sell order at a given timestamp.
+        - _process_buy_order(...): Internal method to process a buy order.
+        - _process_sell_order(...): Internal method to process a sell order.
+
+    Example usage:
+        processor = OrderProcessor(fees_graph, dataloader)
+        trade = processor.process_order('ETH', 1.0, 'buy', 1234567890, portfolio)
+    """
 
     def __init__(self, fees_graph: FeesGraph, dataloader: OrderBookDataLoader):
         self.fees_graph = fees_graph
@@ -15,9 +26,19 @@ class OrderProcessor:
     def process_order(self, coin: Coin, amount: float, action_type: str,
                       execution_timestamp: TimeStep, portfolio: Portfolio) -> Optional[Dict]:
         """
-        Process individual order at execution_timestamp (timestamp + runtime + delta)
-        Gets market data at the actual execution time, not decision time
-        Updates portfolio at execution time
+        Process an individual order at execution_timestamp (timestamp + runtime + delta).
+        Gets market data at the actual execution time, not decision time.
+        Updates portfolio at execution time.
+
+        Args:
+            coin (Coin): The coin to buy or sell.
+            amount (float): The amount of the coin to buy (for 'buy') or sell (for 'sell').
+            action_type (str): Either 'buy' or 'sell'.
+            execution_timestamp (TimeStep): The timestamp at which the order is executed.
+            portfolio (Portfolio): The portfolio to update.
+
+        Returns:
+            Optional[Dict]: A dictionary with trade details if successful, or None if the trade could not be executed.
         """
         try:
             # Get market data at execution time
@@ -74,7 +95,19 @@ class OrderProcessor:
 
     def _process_buy_order(self, coin: Coin, amount: float, coin_data: pd.DataFrame,
                            execution_timestamp: TimeStep, portfolio: Portfolio) -> Optional[Dict]:
-        """Process buy order with market impact and fees at execution time"""
+        """
+        Process a buy order with market impact and fees at execution time.
+
+        Args:
+            coin (Coin): The coin to buy.
+            amount (float): The amount of the coin to buy.
+            coin_data (pd.DataFrame): Market data for the coin at execution time.
+            execution_timestamp (TimeStep): The timestamp at which the order is executed.
+            portfolio (Portfolio): The portfolio to update.
+
+        Returns:
+            Optional[Dict]: Trade details if successful, None otherwise.
+        """
         try:
             price = estimate_price(coin_data, 'ask')
 
@@ -107,7 +140,19 @@ class OrderProcessor:
 
     def _process_sell_order(self, coin: Coin, amount: float, coin_data: pd.DataFrame,
                             execution_timestamp: TimeStep, portfolio: Portfolio) -> Optional[Dict]:
-        """Process sell order with market impact and fees at execution time"""
+        """
+        Process a sell order with market impact and fees at execution time.
+
+        Args:
+            coin (Coin): The coin to sell.
+            amount (float): The amount of the coin to sell.
+            coin_data (pd.DataFrame): Market data for the coin at execution time.
+            execution_timestamp (TimeStep): The timestamp at which the order is executed.
+            portfolio (Portfolio): The portfolio to update.
+
+        Returns:
+            Optional[Dict]: Trade details if successful, None otherwise.
+        """
         try:
             
             price = estimate_price(coin_data, 'bid')
