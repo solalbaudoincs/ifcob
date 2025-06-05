@@ -62,18 +62,28 @@ python scripts/create_feature.py --remove MyNewFeature
 ---
 
 ### `manage_models.py`
+
 Script to train, test, tune, and compare models using the ModelManager.
 
 **Features:**
-- Train models
-- Test models
-- Compare/tune hyperparameters
+- Train a model with optional hyperparameters: `--n_estimators`, `--max_depth`, `--learning_rate`
+- Test a model and print/save performance report
+- Compare models (hyperparameters must be set directly via CLI arguments)
+- Select and display the best hyperparameters from previous runs
 
 **Usage:**
 ```bash
-python scripts/manage_models.py train --model random_forest_mateo --features <features_path> --target <target_path>
+# Train a model (with optional hyperparameters)
+python scripts/manage_models.py train --model random_forest_mateo --features <features_path> --target <target_path> [--n_estimators 5] [--max_depth 3] [--learning_rate 0.1]
+
+# Test a model
 python scripts/manage_models.py test --model random_forest_mateo --features <features_path> --target <target_path> --load <model_path>
-python scripts/manage_models.py compare --model random_forest_mateo --features <features_path> --target <target_path> --param_grid '{"n_estimators": [50, 100], "max_depth": [3, 5]}'
+
+# Compare models (set hyperparameters directly)
+python scripts/manage_models.py compare --model random_forest_mateo --features <features_path> --target <target_path>
+
+# Select best hyperparameters from previous runs
+python scripts/manage_models.py select --model random_forest_mateo
 ```
 
 ---

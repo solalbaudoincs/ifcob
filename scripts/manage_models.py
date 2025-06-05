@@ -6,13 +6,14 @@ Script to train, test, tune, and compare models using the ModelManager.
 Usage examples:
 ---------------
 Train a model:
-    python manage_models.py train --model random_forest_mateo --features <features_path> --target <target_path>
+    python manage_models.py train --model random_forest_mateo --features <features_path> --target <target_path> [--n_estimators 5] [--max_depth 3] [--learning_rate 0.1]
 
 Test a model:
     python manage_models.py test --model random_forest_mateo --features <features_path> --target <target_path> --load <model_path>
 
 Compare hyperparameters:
-    python manage_models.py compare --model random_forest_mateo --features <features_path> --target <target_path> --param_grid '{"n_estimators": [50, 100], "max_depth": [3, 5]}'
+    python manage_models.py compare --model random_forest_mateo --features <features_path> --target <target_path>
+    # (param_grid is no longer supported; set hyperparameters directly with --n_estimators, --max_depth, --learning_rate, etc.)
 
 Select best hyperparameters:
     python manage_models.py select --model random_forest_mateo
@@ -69,15 +70,15 @@ def train(args):
             args.save = model_path
     X_train, X_test, y_train, y_test = ModelManager.prepare_data(
         args.features, args.target, test_size=args.test_size, n_samples=args.n_samples)
-    model = ModelManager.get_model(args.model)
-    # If --params is provided, update args with those hyperparameters
-    if hasattr(args, 'params') and args.params:
-        try:
-            user_params = json.loads(args.params)
-            print(f"Using user-specified hyperparameters: {user_params}")
-            args.__dict__.update(user_params)
-        except Exception as e:
-            print(f"Could not parse --params JSON: {e}")
+    # Collect supported hyperparameters
+    model_kwargs = {}
+    if getattr(args, 'n_estimators', None) is not None:
+        model_kwargs['n_estimators'] = args.n_estimators
+    if getattr(args, 'max_depth', None) is not None:
+        model_kwargs['max_depth'] = args.max_depth
+    if getattr(args, 'learning_rate', None) is not None:
+        model_kwargs['learning_rate'] = args.learning_rate
+    model = ModelManager.get_model(args.model, **model_kwargs)
     # Génération d'un nom de fichier reconnaissable basé sur quelques caractéristiques du modèle
     def get_model_id(model, args):
         import re
@@ -206,19 +207,19 @@ def compare(args):
     from sklearn.model_selection import ParameterGrid
     X_train, X_test, y_train, y_test = ModelManager.prepare_data(
         args.features, args.target, test_size=args.test_size)
-    param_grid = json.loads(args.param_grid)
+    # param_grid = json.loads(args.param_grid)
     best_acc = -1
     best_params = None
-    for params in ParameterGrid(param_grid):
-        print(f"Testing params: {params}")
-        model = ModelManager.get_model(args.model, **params)
-        model.train(X_train, y_train)
-        results = model.evaluate(X_test, y_test)
-        acc = results['accuracy']
-        print(f"Accuracy: {acc:.4f}")
-        if acc > best_acc:
-            best_acc = acc
-            best_params = params
+    # for params in ParameterGrid(param_grid):
+    #     print(f"Testing params: {params}")
+    #     model = ModelManager.get_model(args.model, **params)
+    #     model.train(X_train, y_train)
+    #     results = model.evaluate(X_test, y_test)
+    #     acc = results['accuracy']
+    #     print(f"Accuracy: {acc:.4f}")
+    #     if acc > best_acc:
+    #         best_acc = acc
+    #         best_params = params
     print(f"Best accuracy: {best_acc:.4f} with params: {best_params}")
 
 
@@ -260,7 +261,7 @@ def main():
         "Examples:\n"
         "  python manage_models.py train --model random_forest_mateo --features <features_path> --target <target_path>\n"
         "  python manage_models.py test --model random_forest_mateo --features <features_path> --target <target_path> --load <model_path>\n"
-        "  python manage_models.py compare --model random_forest_mateo --features <features_path> --target <target_path> --param_grid '{\"n_estimators\": [50, 100], \"max_depth\": [3, 5]}'\n"
+        "  python manage_models.py compare --model random_forest_mateo --features <features_path> --target <target_path>\n"
         "  python manage_models.py select --model random_forest_mateo\n"
     )
     subparsers = parser.add_subparsers(dest='command')
@@ -273,9 +274,10 @@ def main():
     parser_train.add_argument('--save', required=False, default=None)
     parser_train.add_argument('--test_size', type=float, default=0.2)
     parser_train.add_argument('--n_samples', type=int, default=None, help='Nombre de data points à utiliser (train+test)')
-    # Allow arbitrary hyperparameters
-    parser_train.add_argument('--params', type=str, default=None, help='JSON string of model hyperparameters, e.g. {"n_estimators": 5, "max_depth": 3}')
     parser_train.add_argument('--select-best', action='store_true', help='Use best hyperparameters from previous runs if available')
+    parser_train.add_argument('--n_estimators', type=int, default=None, help='Number of estimators for the model (if supported)')
+    parser_train.add_argument('--max_depth', type=int, default=None, help='Maximum depth for the model (if supported)')
+    parser_train.add_argument('--learning_rate', type=float, default=None, help='Learning rate for the model (if supported)')
     parser_train.set_defaults(func=train)
 
     # Test
@@ -293,7 +295,6 @@ def main():
     parser_compare.add_argument('--model', required=True)
     parser_compare.add_argument('--features', required=True)
     parser_compare.add_argument('--target', required=True)
-    parser_compare.add_argument('--param_grid', required=True, help='JSON string, e.g. {"n_estimators": [50, 100], "max_depth": [3, 5]}')
     parser_compare.add_argument('--test_size', type=float, default=0.2)
     parser_compare.set_defaults(func=compare)
 
