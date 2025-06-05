@@ -91,6 +91,22 @@ class Portfolio:
         required_amount = amount * (1 + fee_rate)
         return self.positions[coin_from] >= required_amount
  
+    def update_position(self, coin: Coin, amount: float) -> None:
+        """
+        Update the position for a specific coin by adding the specified amount.
+
+        Args:
+            coin (str): The coin to update.
+            amount (float): The amount to add (can be negative to reduce position).
+        """
+        if coin not in self.positions:
+            raise ValueError(f"Coin {coin} not found in portfolio")
+        
+        self.positions[coin] += amount
+        
+        # Ensure no negative positions
+        if self.positions[coin] < 0:
+            raise ValueError(f"Cannot have negative position for {coin}")
     
     def execute_trade(self, coin_from, coin_to, ratio, volume, fees_graph, reverse=False):
         """
