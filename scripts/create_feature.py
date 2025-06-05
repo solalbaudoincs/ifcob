@@ -123,11 +123,14 @@ def generate_feature_code(class_name, description, parameters):
     return code
 
 
-def create_feature_file(class_name, code):
+def create_feature_file(class_name, code, feature_name_snake=None):
     """Create a new feature file in feature_extraction/features."""
     features_dir = Path(__file__).parent.parent / 'feature_extraction' / 'features'
     features_dir.mkdir(parents=True, exist_ok=True)
-    file_name = snake_case(class_name.replace('Feature', '')) + '.py'
+    # Use the provided feature_name_snake (from --name), or fallback to snake_case(class_name)
+    if feature_name_snake is None:
+        feature_name_snake = snake_case(class_name.replace('Feature', ''))
+    file_name = feature_name_snake + '.py'
     file_path = features_dir / file_name
     if file_path.exists():
         print(f"File {file_path} already exists. Aborting to avoid overwrite.")
@@ -214,17 +217,16 @@ def remove_feature_code(class_name):
 def main():
     """Main function."""
     args = parse_arguments()
-    
     # Ensure class name ends with 'Feature'
     class_name = args.name
     if not class_name.endswith('Feature'):
         class_name += 'Feature'
-    
     # Generate the code
     code = generate_feature_code(class_name, args.description, args.parameters)
-    
+    # Use --name in minuscules for the filename
+    feature_name_snake = args.name.lower()
     # Create feature file
-    result = create_feature_file(class_name, code)
+    result = create_feature_file(class_name, code, feature_name_snake=feature_name_snake)
     if result:
         feature_file, class_name = result
         add_import_to_init(feature_file, class_name)

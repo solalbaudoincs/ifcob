@@ -33,7 +33,7 @@ try:
         CumulativeReturnTransferEntropy,
         SharpeRatioClassificationFeature,
         SharpeRatioTransferEntropy,
-
+        PriceIncreasesFeature,
     )
 except ImportError:
     from features import (
@@ -130,6 +130,13 @@ class FeatureGenerator:
         #Sharpe ratio
         self.register_feature(SharpeRatioClassificationFeature(5))
         self.register_feature(SharpeRatioTransferEntropy(5))
+
+        #price increases
+        self.register_feature(PriceIncreasesFeature(5000, 10))
+        self.register_feature(PriceIncreasesFeature(5000, 20))
+        self.register_feature(PriceIncreasesFeature(500, 10))
+        self.register_feature(PriceIncreasesFeature(50, 10))
+        self.register_feature(PriceIncreasesFeature(5, 10))
     
     def register_feature(self, feature: BaseFeature):
         """Register a new feature."""
