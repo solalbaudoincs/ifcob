@@ -69,6 +69,18 @@ def train(args):
         if not args.save:
             args.save = model_path
     X_train, X_test, y_train, y_test = ModelManager.prepare_data(
+<<<<<<< HEAD
+        args.features, args.target, test_size=args.test_size, n_samples=args.n_samples, model_name=args.model)
+    model = ModelManager.get_model(args.model)
+    # If --params is provided, update args with those hyperparameters
+    if hasattr(args, 'params') and args.params:
+        try:
+            user_params = json.loads(args.params)
+            print(f"Using user-specified hyperparameters: {user_params}")
+            args.__dict__.update(user_params)
+        except Exception as e:
+            print(f"Could not parse --params JSON: {e}")
+=======
         args.features, args.target, test_size=args.test_size, n_samples=args.n_samples)
     # Collect supported hyperparameters
     model_kwargs = {}
@@ -79,6 +91,7 @@ def train(args):
     if getattr(args, 'learning_rate', None) is not None:
         model_kwargs['learning_rate'] = args.learning_rate
     model = ModelManager.get_model(args.model, **model_kwargs)
+>>>>>>> 5851b60869f94a927b433faf34c344effce92fbe
     # Génération d'un nom de fichier reconnaissable basé sur quelques caractéristiques du modèle
     def get_model_id(model, args):
         import re
@@ -167,13 +180,17 @@ def train(args):
             if isinstance(v, float) and (math.isnan(v) or v is None):
                 return False
             return True
+        if 'estimator' in params.keys():
+            # Si c'est un modèle sklearn, on enlève l'estimateur pour éviter la récursion infinie
+            params.pop('estimator', None)
         params = {k: v for k, v in params.items() if is_valid(v)}
         return params
+    
     hyperparams = get_explicit_hyperparams(model)
     hyperparams = recursive_convert(hyperparams)
     perf_path = args.save + '.perf.json'
     perf_data = {
-        'model': args.model,
+        'model': str(args.model),
         'hyperparameters': hyperparams,
         'performance': recursive_convert(results)
     }
@@ -194,7 +211,7 @@ def test(args):
     # Save performance
     perf_path = args.load + '.perf.json'
     perf_data = {
-        'model': args.model,
+        'model': str(args.model),
         'hyperparameters': getattr(model, 'hyperparams', {}),
         'performance': results
     }
