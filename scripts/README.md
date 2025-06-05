@@ -42,11 +42,21 @@ python scripts/generate_features.py --coin ETH --data-version 2 --list-features
 ---
 
 ### `create_feature.py`
-Template generator for new feature classes. Helps developers quickly scaffold new feature code.
+
+Feature template generator and feature management utility.
+
+**Features:**
+- Generate new feature class templates and files
+- Automatically add imports to `feature_extraction/features/__init__.py` and `feature_generator.py`
+- Remove features and clean up all related imports and files
 
 **Usage:**
 ```bash
+# Create a new feature
 python scripts/create_feature.py --name MyNewFeature --description "Description of the feature"
+
+# Remove a feature (deletes file and cleans up imports)
+python scripts/create_feature.py --remove MyNewFeature
 ```
 
 ---
