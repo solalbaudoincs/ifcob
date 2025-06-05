@@ -17,17 +17,18 @@ class TimeAvgFeature(BaseFeature):
     def generate(self, df_cleaned: pd.DataFrame, **kwargs) -> pd.Series:
         """
         Generate the TimeAvg feature.
-        
+
         Args:
             df_cleaned: Preprocessed DataFrame with order book data
             **kwargs: Additional keyword arguments
-        
+
         Returns:
             pd.Series: The generated feature values
         """
         base_generated = self.base_feature.generate(df_cleaned, **kwargs)
 
         # Use pandas rolling with a time-based window (assumes index is datetime or numeric in ms)
+        # By default, pandas.rolling is backward-looking (includes current and previous values)
         if np.issubdtype(df_cleaned.index.dtype, np.datetime64):
             window_str = f"{int(self.time_window)}ms"
             average = base_generated.rolling(window=window_str, min_periods=1).mean()
