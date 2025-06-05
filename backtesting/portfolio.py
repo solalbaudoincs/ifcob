@@ -141,7 +141,7 @@ class Portfolio:
             # Deduct from source coin (including fees)
             if reverse:
                 # If reverse is True, we are trading coin_to for coin_from
-                total_ratio = ratio * (1 + fee_rate)
+                total_ratio = ratio * (1 - fee_rate)
                 self.update_position(coin_from, -volume)
                 self.update_position(coin_to, volume*total_ratio)
             else:
