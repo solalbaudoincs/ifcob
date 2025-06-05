@@ -16,3 +16,5 @@ from .sharpe_ratio_transfer_entropy import SharpeRatioTransferEntropy
 from .cumulative_return_transfer_entropy import CumulativeReturnTransferEntropy
 from .priceincreases import PriceIncreasesFeature
 from .timeavg import TimeAvgFeature
+from .midprice import MidPriceFeature
+from .itincreases import ItIncreasesFeature

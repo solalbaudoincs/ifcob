@@ -194,9 +194,6 @@ class RandomForestMateoModel2(BaseModel):
     Random Forest model as implemented in model_mateo_clean.ipynb.
     """
     DEFAULT_FEATURES = [
-        "bid-ask-imbalance-5-levels",
-        "V-bid-5-levels",
-        "V-ask-5-levels",
         "slope-bid-5-levels",
         "slope-ask-5-levels",
         "avg-250ms-of-slope-ask-5-levels",
@@ -205,7 +202,7 @@ class RandomForestMateoModel2(BaseModel):
         "avg-250ms-of-V-ask-5-levels",
         "avg-250ms-of-liquidity-ratio-5-levels",
     ]
-    DEFAULT_TARGET = "price-increase-next-100ms-with-10-threshold"
+    DEFAULT_TARGET = "avg-10ms-of-mid-price-itincreases-after-200ms-with-threshold-5"
     DEFAULT_FEATURES_PATH = os.path.join(os.path.dirname(__file__), '../data/features/DATA_0/XBT_EUR.parquet')
     DEFAULT_TARGET_PATH = os.path.join(os.path.dirname(__file__), '../data/features/DATA_0/ETH_EUR.parquet')
     DEFAULT_MODEL_PATH = os.path.join(os.path.dirname(__file__), '../predictors/mateo/rf_model_mateo_2_avg.joblib')
@@ -216,7 +213,7 @@ class RandomForestMateoModel2(BaseModel):
         self.target_column = hyperparams.get('target_column', self.DEFAULT_TARGET)
         self.model = RandomForestClassifier(
             n_estimators=hyperparams.get('n_estimators', 100),
-            max_depth=hyperparams.get('max_depth', 3),
+            max_depth=hyperparams.get('max_depth', 5),
             class_weight=hyperparams.get('class_weight', 'balanced'),
             random_state=hyperparams.get('random_state', 42),
             n_jobs=hyperparams.get('n_jobs', -1)
@@ -586,8 +583,8 @@ class ModelManager:
         X_train, X_test, y_train, y_test = preprocessor.prepare_data(
             features_df=features_df,
             target_df=target_df,
-            feature_columns=feature_columns or ModelManager.MODELS[model_name].DEFAULT_FEATURES,
-            target_column=target_column or ModelManager.MODELS[model_name].DEFAULT_TARGET,
+            feature_columns=ModelManager.MODELS[model_name].DEFAULT_FEATURES,
+            target_column=ModelManager.MODELS[model_name].DEFAULT_TARGET,
             test_size=test_size
         )
         return X_train, X_test, y_train, y_test

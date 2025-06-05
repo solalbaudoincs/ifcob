@@ -132,7 +132,7 @@ class OrderProcessor:
                         'fee_rate': fee_rate
                     }
             else:
-                print(f"Buy order failed for {coin}: volume : {amount}, coin_data : {coin_data}, portfolio : {portfolio}, XBT_price : {price}, coin_price : {price}, total cost : {cost}€")
+                print(f"Buy order failed for {coin}: volume : {amount}, coin_data : (add to print in file), portfolio : {portfolio}, XBT_price : {price}, coin_price : {price}, total cost : {cost}€")
         except ValueError as e:
             print(f"Buy order failed for {coin}: {e}")
 

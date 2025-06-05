@@ -67,6 +67,12 @@ class Portfolio:
         for coin in coins:
             self.positions[coin] = 0.0
     
+    def __str__(self):
+        lines = ["Portfolio positions:"]
+        for coin, amount in self.positions.items():
+            lines.append(f"  {coin}: {amount:.8f}")
+        return "\n".join(lines)
+
     def get_position(self, coin: Coin) -> float:
         """Get current position for a specific coin"""
         return self.positions.get(coin, 0.0)

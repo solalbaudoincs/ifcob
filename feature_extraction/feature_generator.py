@@ -36,6 +36,8 @@ try:
         SharpeRatioTransferEntropy,
         PriceIncreasesFeature,
         TimeAvgFeature,
+        MidPriceFeature,
+        ItIncreasesFeature,
     )
 except ImportError:
     from features import (
@@ -135,10 +137,16 @@ class FeatureGenerator:
 
         #price increases
         self.register_feature(PriceIncreasesFeature(1000, 10))
-        self.register_feature(PriceIncreasesFeature(500, 20))
+        self.register_feature(PriceIncreasesFeature(500, 10))
         self.register_feature(PriceIncreasesFeature(250, 10))
         self.register_feature(PriceIncreasesFeature(100, 10))
         self.register_feature(PriceIncreasesFeature(50, 10))
+
+        self.register_feature(PriceIncreasesFeature(1000, 5))
+        self.register_feature(PriceIncreasesFeature(500, 5))
+        self.register_feature(PriceIncreasesFeature(250, 5))
+        self.register_feature(PriceIncreasesFeature(100, 5))
+        self.register_feature(PriceIncreasesFeature(50, 5))
 
 
         self.register_feature(TimeAvgFeature(CumulativeVolumeFeature('bid', n_levels), 250))
@@ -146,6 +154,9 @@ class FeatureGenerator:
         self.register_feature(TimeAvgFeature(BookSlopeFeature('bid', n_levels), 250))
         self.register_feature(TimeAvgFeature(BookSlopeFeature('ask', n_levels), 250))
         self.register_feature(TimeAvgFeature(LiquidityRatioFeature(n_levels), 250))
+
+        self.register_feature(TimeAvgFeature(MidPriceFeature(), 10))
+        self.register_feature(ItIncreasesFeature(TimeAvgFeature(MidPriceFeature(), 10),200,5))
 
 
     def register_feature(self, feature: BaseFeature):

@@ -6,7 +6,7 @@ import numpy as np
 class TimeAvgFeature(BaseFeature):
     """Generate TimeAvg feature."""
     
-    def __init__(self, base_feature, time_window : float = 5000):
+    def __init__(self, base_feature : BaseFeature, time_window : float = 5000):
         super().__init__(
             name=f"avg-{time_window}ms-of-{base_feature.name}",
             description="Custom feature"
@@ -27,20 +27,16 @@ class TimeAvgFeature(BaseFeature):
         """
         base_generated = self.base_feature.generate(df_cleaned, **kwargs)
 
-        # Implement the logic to calculate the average over the specified time window
+        # Use pandas rolling with a time-based window (assumes index is datetime or numeric in ms)
+        if np.issubdtype(df_cleaned.index.dtype, np.datetime64):
+            window_str = f"{int(self.time_window)}ms"
+            average = base_generated.rolling(window=window_str, min_periods=1).mean()
+        else:
+            # If index is numeric (e.g., ms), convert to TimedeltaIndex for rolling
+            df_temp = base_generated.copy()
+            df_temp.index = pd.to_datetime(df_cleaned.index, unit='ms')
+            window_str = f"{int(self.time_window)}ms"
+            average = df_temp.rolling(window=window_str, min_periods=1).mean()
+            average.index = df_cleaned.index  # restore original index
 
-        timpestamps = df_cleaned.index.values
-
-        idx_prev = np.searchsorted(timpestamps, timpestamps - self.time_window)
-        idx_prev[idx_prev >= len(timpestamps)] = len(timpestamps) - 1
-        idx_prev[idx_prev < 0] = 0
-
-        cumsum = np.insert(base_generated.values.cumsum(), 0, 0)
-        start_idx = idx_prev
-        end_idx = np.arange(len(timpestamps)) + 1
-
-        div = end_idx - start_idx
-        div[div < 1] = 1
-        average = (cumsum[end_idx] - cumsum[start_idx]) / div
-        
         return pd.Series(average, index=df_cleaned.index, name=self.name)
