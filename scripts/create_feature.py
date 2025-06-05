@@ -12,6 +12,7 @@ Usage:
 import argparse
 import os
 from pathlib import Path
+import shutil
 
 
 FEATURE_TEMPLATE = '''
@@ -102,7 +103,7 @@ def generate_feature_code(class_name, description, parameters):
     init_assignments = []
     for param in parameters:
         param_name = param.split(':')[0].strip()
-        init_assignments.append(f"        self.{param_name} = {param_name}")
+        init_assignments.append(f"self.{param_name} = {param_name}")
     
     init_assignments_str = '\\n'.join(init_assignments)
     
@@ -122,6 +123,94 @@ def generate_feature_code(class_name, description, parameters):
     return code
 
 
+def create_feature_file(class_name, code):
+    """Create a new feature file in feature_extraction/features."""
+    features_dir = Path(__file__).parent.parent / 'feature_extraction' / 'features'
+    features_dir.mkdir(parents=True, exist_ok=True)
+    file_name = snake_case(class_name.replace('Feature', '')) + '.py'
+    file_path = features_dir / file_name
+    if file_path.exists():
+        print(f"File {file_path} already exists. Aborting to avoid overwrite.")
+        return None
+    with open(file_path, 'w') as f:
+        f.write(f"from ..base import BaseFeature\nimport pandas as pd\n\n{code}")
+    print(f"Feature file created: {file_path}")
+    return file_name, class_name
+
+
+def add_import_to_init(feature_file, class_name):
+    """Add import to __init__.py in features directory, properly formatted."""
+    init_path = Path(__file__).parent.parent / 'feature_extraction' / 'features' / '__init__.py'
+    import_line = f"from .{feature_file[:-3]} import {class_name}\n"
+    # Read all lines, remove any duplicate import for this class, and ensure newline at end
+    if init_path.exists():
+        with open(init_path, 'r', encoding='utf-8') as f:
+            lines = f.readlines()
+        # Remove any previous import for this class
+        lines = [l for l in lines if f"import {class_name}" not in l]
+        # Ensure file ends with a newline
+        if lines and not lines[-1].endswith('\n'):
+            lines[-1] += '\n'
+        # Add the new import at the end
+        lines.append(import_line)
+        with open(init_path, 'w', encoding='utf-8') as f:
+            f.writelines(lines)
+    else:
+        with open(init_path, 'w', encoding='utf-8') as f:
+            f.write(import_line)
+    print(f"Added import to {init_path}")
+
+
+def add_import_to_feature_generator(class_name):
+    """Add import to feature_generator.py if not present."""
+    fg_path = Path(__file__).parent.parent / 'feature_extraction' / 'feature_generator.py'
+    with open(fg_path, 'r', encoding='utf-8') as f:
+        lines = f.readlines()
+    import_line = f"        {class_name},\n"
+    # Insert into the try import block if not present
+    for i, line in enumerate(lines):
+        if 'from feature_extraction.features import (' in line:
+            # Find the next closing parenthesis
+            for j in range(i+1, len(lines)):
+                if ')' in lines[j]:
+                    if import_line not in lines[i+1:j]:
+                        lines.insert(j, import_line)
+                    break
+            break
+    with open(fg_path, 'w', encoding='utf-8') as f:
+        f.writelines(lines)
+    print(f"Added import to {fg_path}")
+
+
+def remove_feature_code(class_name):
+    """Remove feature file, import from __init__.py, and import from feature_generator.py."""
+    features_dir = Path(__file__).parent.parent / 'feature_extraction' / 'features'
+    file_name = snake_case(class_name.replace('Feature', '')) + '.py'
+    file_path = features_dir / file_name
+    # Remove feature file
+    if file_path.exists():
+        file_path.unlink()
+        print(f"Removed feature file: {file_path}")
+    # Remove import from __init__.py
+    init_path = features_dir / '__init__.py'
+    if init_path.exists():
+        with open(init_path, 'r', encoding='utf-8') as f:
+            lines = f.readlines()
+        lines = [l for l in lines if f"import {class_name}" not in l]
+        with open(init_path, 'w', encoding='utf-8') as f:
+            f.writelines(lines)
+        print(f"Removed import from {init_path}")
+    # Remove import from feature_generator.py
+    fg_path = Path(__file__).parent.parent / 'feature_extraction' / 'feature_generator.py'
+    if fg_path.exists():
+        with open(fg_path, 'r', encoding='utf-8') as f:
+            lines = f.readlines()
+        lines = [l for l in lines if f"{class_name}," not in l]
+        with open(fg_path, 'w', encoding='utf-8') as f:
+            f.writelines(lines)
+        print(f"Removed import from {fg_path}")
+
+
 def main():
     """Main function."""
     args = parse_arguments()
@@ -134,7 +223,13 @@ def main():
     # Generate the code
     code = generate_feature_code(class_name, args.description, args.parameters)
     
-    # Output the code
+    # Create feature file
+    result = create_feature_file(class_name, code)
+    if result:
+        feature_file, class_name = result
+        add_import_to_init(feature_file, class_name)
+        add_import_to_feature_generator(class_name)
+    # Output code as before
     if args.output:
         with open(args.output, 'w') as f:
             f.write(code)
@@ -150,4 +245,11 @@ def main():
 
 
 if __name__ == "__main__":
-    main()
+    import sys
+    if '--remove' in sys.argv:
+        parser = argparse.ArgumentParser(description="Remove a feature class and its imports")
+        parser.add_argument('--remove', required=True, help='Name of the feature class to remove (e.g., MyFeature)')
+        args = parser.parse_args()
+        remove_feature_code(args.remove)
+    else:
+        main()
