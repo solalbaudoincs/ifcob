@@ -14,6 +14,9 @@ Test a model:
 Compare hyperparameters:
     python manage_models.py compare --model random_forest_mateo --features <features_path> --target <target_path> --param_grid '{"n_estimators": [50, 100], "max_depth": [3, 5]}'
 
+Select best hyperparameters:
+    python manage_models.py select --model random_forest_mateo
+
 Author: Your Name
 Date: 2025-06-04
 """
@@ -35,6 +38,26 @@ from prediction_model.model_manager import ModelManager
 
 def train(args):
     # Use notebook defaults if not specified
+    import glob
+    # If --select-best is set, try to load best hyperparameters from previous runs
+    if hasattr(args, 'select_best') and args.select_best:
+        search_dir = os.path.join('predictors', args.model)
+        perf_files = glob.glob(os.path.join(search_dir, '**', '*.perf.json'), recursive=True)
+        best_acc = -1
+        best_params = None
+        for pf in perf_files:
+            with open(pf, 'r') as f:
+                data = json.load(f)
+            perf = data.get('performance', {})
+            acc = perf.get('accuracy')
+            if acc is not None and acc > best_acc:
+                best_acc = acc
+                best_params = data.get('hyperparameters', {})
+        if best_params:
+            print(f"Using best hyperparameters from previous runs: {best_params}")
+            args.__dict__.update(best_params)
+        else:
+            print("No previous hyperparameters found. Proceeding with defaults or provided values.")
     if not args.features or not args.target:
         from prediction_model.model_manager import RandomForestMateoModel
         features_path, target_path, model_path = RandomForestMateoModel.get_default_paths()
@@ -47,6 +70,14 @@ def train(args):
     X_train, X_test, y_train, y_test = ModelManager.prepare_data(
         args.features, args.target, test_size=args.test_size, n_samples=args.n_samples)
     model = ModelManager.get_model(args.model)
+    # If --params is provided, update args with those hyperparameters
+    if hasattr(args, 'params') and args.params:
+        try:
+            user_params = json.loads(args.params)
+            print(f"Using user-specified hyperparameters: {user_params}")
+            args.__dict__.update(user_params)
+        except Exception as e:
+            print(f"Could not parse --params JSON: {e}")
     # Génération d'un nom de fichier reconnaissable basé sur quelques caractéristiques du modèle
     def get_model_id(model, args):
         import re
@@ -191,8 +222,47 @@ def compare(args):
     print(f"Best accuracy: {best_acc:.4f} with params: {best_params}")
 
 
+def select(args):
+    """Select and print the best hyperparameters from previous compare runs."""
+    import glob
+    import json
+    import os
+    # Find all .perf.json files in predictors/<model>/
+    search_dir = os.path.join('predictors', args.model)
+    perf_files = glob.glob(os.path.join(search_dir, '**', '*.perf.json'), recursive=True)
+    best_acc = -1
+    best_file = None
+    best_perf = None
+    for pf in perf_files:
+        with open(pf, 'r') as f:
+            data = json.load(f)
+        perf = data.get('performance', {})
+        acc = perf.get('accuracy')
+        if acc is not None and acc > best_acc:
+            best_acc = acc
+            best_file = pf
+            best_perf = data
+    if best_file:
+        print(f"Best model: {best_file}")
+        print(json.dumps(best_perf, indent=2))
+    else:
+        print("No performance files found or no accuracy available.")
+
+
 def main():
-    parser = argparse.ArgumentParser(description="Manage ML models.")
+    parser = argparse.ArgumentParser(
+        description="Manage ML models.\n\n"
+        "Commands:\n"
+        "  train   Train a model and save it with performance report.\n"
+        "  test    Test a model and print/save performance report.\n"
+        "  compare Grid search over hyperparameters and report best.\n"
+        "  select  Select and display the best hyperparameters from previous runs.\n\n"
+        "Examples:\n"
+        "  python manage_models.py train --model random_forest_mateo --features <features_path> --target <target_path>\n"
+        "  python manage_models.py test --model random_forest_mateo --features <features_path> --target <target_path> --load <model_path>\n"
+        "  python manage_models.py compare --model random_forest_mateo --features <features_path> --target <target_path> --param_grid '{\"n_estimators\": [50, 100], \"max_depth\": [3, 5]}'\n"
+        "  python manage_models.py select --model random_forest_mateo\n"
+    )
     subparsers = parser.add_subparsers(dest='command')
 
     # Train
@@ -203,6 +273,9 @@ def main():
     parser_train.add_argument('--save', required=False, default=None)
     parser_train.add_argument('--test_size', type=float, default=0.2)
     parser_train.add_argument('--n_samples', type=int, default=None, help='Nombre de data points à utiliser (train+test)')
+    # Allow arbitrary hyperparameters
+    parser_train.add_argument('--params', type=str, default=None, help='JSON string of model hyperparameters, e.g. {"n_estimators": 5, "max_depth": 3}')
+    parser_train.add_argument('--select-best', action='store_true', help='Use best hyperparameters from previous runs if available')
     parser_train.set_defaults(func=train)
 
     # Test
@@ -223,6 +296,11 @@ def main():
     parser_compare.add_argument('--param_grid', required=True, help='JSON string, e.g. {"n_estimators": [50, 100], "max_depth": [3, 5]}')
     parser_compare.add_argument('--test_size', type=float, default=0.2)
     parser_compare.set_defaults(func=compare)
+
+    # Select
+    parser_select = subparsers.add_parser('select')
+    parser_select.add_argument('--model', required=True)
+    parser_select.set_defaults(func=select)
 
     args = parser.parse_args()
     if hasattr(args, 'func'):
