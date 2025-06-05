@@ -68,7 +68,7 @@ def train(args):
         if not args.save:
             args.save = model_path
     X_train, X_test, y_train, y_test = ModelManager.prepare_data(
-        args.features, args.target, test_size=args.test_size, n_samples=args.n_samples)
+        args.features, args.target, test_size=args.test_size, n_samples=args.n_samples, model_name=args.model)
     model = ModelManager.get_model(args.model)
     # If --params is provided, update args with those hyperparameters
     if hasattr(args, 'params') and args.params:
@@ -183,7 +183,7 @@ def train(args):
 
 def test(args):
     X_train, X_test, y_train, y_test = ModelManager.prepare_data(
-        args.features, args.target, test_size=args.test_size, n_samples=args.n_samples)
+        args.features, args.target, test_size=args.test_size, n_samples=args.n_samples, model_name=args.model)
     model = ModelManager.get_model(args.model)
     model.load(args.load)
     results = model.evaluate(X_test, y_test)
@@ -205,7 +205,7 @@ def test(args):
 def compare(args):
     from sklearn.model_selection import ParameterGrid
     X_train, X_test, y_train, y_test = ModelManager.prepare_data(
-        args.features, args.target, test_size=args.test_size)
+        args.features, args.target, test_size=args.test_size, model_name=args.model)
     param_grid = json.loads(args.param_grid)
     best_acc = -1
     best_params = None

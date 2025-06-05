@@ -25,6 +25,7 @@ from typing import Dict, Any, Optional, Tuple
 from prediction_model.data_preprocess import DataPreprocessor
 from sklearn.ensemble import RandomForestClassifier, AdaBoostClassifier
 from sklearn.metrics import accuracy_score, classification_report, confusion_matrix
+from sklearn.utils.class_weight import compute_class_weight
 from sklearn.tree import DecisionTreeClassifier
 import xgboost as xgb
 
@@ -187,6 +188,90 @@ class RandomForestMateoModel(BaseModel):
 
     def predict(self, X: pd.DataFrame) -> np.ndarray:
         return self.model.predict(X)
+    
+class RandomForestModel(BaseModel):
+    """
+    Modèle Random Forest basé sur les features du carnet XBT et le target ETH.
+
+    Prédit un signal de trading (-1, 0, 1) à partir de données en temps réel.
+    """
+
+    DEFAULT_FEATURES = [
+        "V-bid-5-levels",
+        "V-ask-5-levels",
+        "slope-bid-5-levels",
+        "slope-ask-5-levels"
+    ]
+    DEFAULT_TARGET = "return-vs-volatility-5-ms"
+    DEFAULT_FEATURES_PATH = os.path.join(os.path.dirname(__file__), '../data/features/DATA_0/XBT_EUR.parquet')
+    DEFAULT_TARGET_PATH = os.path.join(os.path.dirname(__file__), '../data/features/DATA_0/ETH_EUR.parquet')
+    DEFAULT_MODEL_PATH = os.path.join(os.path.dirname(__file__), '../predictors/random_forest/rf_model_5ms.joblib')
+
+    def __init__(self, **hyperparams):
+        super().__init__(**hyperparams)
+        self.feature_columns = hyperparams.get('feature_columns', self.DEFAULT_FEATURES)
+        self.target_column = hyperparams.get('target_column', self.DEFAULT_TARGET)
+        self.model = RandomForestClassifier(
+            n_estimators=hyperparams.get('n_estimators', 100),
+            max_depth=hyperparams.get('max_depth', None),
+            max_features=hyperparams.get('max_features', 'sqrt'),
+            min_samples_split=hyperparams.get('min_samples_split', 2),
+            min_samples_leaf=hyperparams.get('min_samples_leaf', 1),
+            random_state=hyperparams.get('random_state', 42),
+            n_jobs=-1
+        )
+
+    @classmethod
+    def get_default_paths(cls):
+        return cls.DEFAULT_FEATURES_PATH, cls.DEFAULT_TARGET_PATH, cls.DEFAULT_MODEL_PATH
+
+    def train_and_report(self, X_train, X_test, y_train, y_test, save_path=None):
+        print("Entraînement du modèle Random Forest...")
+
+        unique = sorted(set(y_train))
+        class_weights = compute_class_weight('balanced', classes=np.array(unique), y=y_train)
+        class_weight_dict = dict(zip(unique, class_weights))
+        sample_weights = np.array([class_weight_dict[label] for label in y_train])
+
+        self.model.fit(X_train, y_train, sample_weight=sample_weights)
+        print("Modèle Random Forest entraîné !")
+
+        y_pred = self.model.predict(X_test)
+        y_train_pred = self.model.predict(X_train)
+        train_acc = accuracy_score(y_train, y_train_pred)
+        test_acc = accuracy_score(y_test, y_pred)
+
+        print("\n=== RÉSULTATS DU MODÈLE RANDOM FOREST ===")
+        print(f"Train Accuracy: {train_acc:.4f}")
+        print(f"Test Accuracy:  {test_acc:.4f}")
+        print(f"Différence (overfitting): {train_acc - test_acc:.4f}")
+        print("\n=== CLASSIFICATION REPORT (TEST SET) ===")
+        print(classification_report(y_test, y_pred))
+        print("\n=== CONFUSION MATRIX (TEST SET) ===")
+        print(confusion_matrix(y_test, y_pred))
+
+        # Importance des variables
+        if hasattr(self.model, 'feature_importances_'):
+            importances = self.model.feature_importances_
+            feature_names = self.feature_columns if len(importances) == len(self.feature_columns) else [f"feature_{i}" for i in range(len(importances))]
+            feature_importance = pd.DataFrame({
+                'feature': feature_names,
+                'importance': importances
+            }).sort_values('importance', ascending=False)
+            print("\n=== IMPORTANCE DES FEATURES ===")
+            print(feature_importance)
+
+        if save_path:
+            os.makedirs(os.path.dirname(save_path), exist_ok=True)
+            joblib.dump(self.model, save_path)
+            print(f"\nModèle sauvegardé dans '{save_path}'")
+
+        print("\n=== ANALYSE TERMINÉE ===")
+
+    def predict(self, X: pd.DataFrame) -> np.ndarray:
+        return self.model.predict(X)
+
+    
 
 class XGBoostModel(BaseModel):
     """
@@ -226,7 +311,6 @@ class XGBoostModel(BaseModel):
     def train_and_report(self, X_train, X_test, y_train, y_test, save_path=None):
         print("Entraînement du modèle XGBoost...")
         # Calcul des poids d'échantillons pour équilibrer les classes
-        from sklearn.utils.class_weight import compute_class_weight
         unique = sorted(set(y_train))
         class_weights = compute_class_weight('balanced', classes=np.array(unique), y=y_train)
         class_weight_dict = dict(zip(unique, class_weights))
@@ -279,7 +363,7 @@ class AdaBoostModel(BaseModel):
         "slope-bid-5-levels",
         "slope-ask-5-levels"
     ]
-    DEFAULT_TARGET = "return-all-signed-for-5-ms"
+    DEFAULT_TARGET = "return-vs-volatility-5-ms"
     DEFAULT_FEATURES_PATH = os.path.join(os.path.dirname(__file__), '../data/features/DATA_0/XBT_EUR.parquet')
     DEFAULT_TARGET_PATH = os.path.join(os.path.dirname(__file__), '../data/features/DATA_0/ETH_EUR.parquet')
     DEFAULT_MODEL_PATH = os.path.join(os.path.dirname(__file__), '../predictors/adaboost/ada_model_5ms_clean.joblib')
@@ -342,6 +426,7 @@ class ModelManager:
         'random_forest_mateo': RandomForestMateoModel,
         'xgboost': XGBoostModel,
         'adaboost': AdaBoostModel,
+        'random_forest_chakib': RandomForestModel,
         # Add new models here
     }
 
@@ -352,9 +437,9 @@ class ModelManager:
         return ModelManager.MODELS[name](**kwargs)
 
     @staticmethod
-    def prepare_data(features_path=None, target_path=None, feature_columns=None, target_column=None, test_size=0.2, random_state=42, n_samples=None):
+    def prepare_data(features_path=None, target_path=None, feature_columns=None, target_column=None, test_size=0.2, random_state=42, n_samples=None, model_name='random_forest_mateo'):
         if features_path is None or target_path is None:
-            features_path, target_path, _ = RandomForestMateoModel.get_default_paths()
+            features_path, target_path, _ = ModelManager.MODELS[model_name].get_default_paths()
         features_df = pd.read_parquet(features_path)
         target_df = pd.read_parquet(target_path)
         preprocessor = DataPreprocessor()
@@ -365,8 +450,8 @@ class ModelManager:
         X_train, X_test, y_train, y_test = preprocessor.prepare_data(
             features_df=features_df,
             target_df=target_df,
-            feature_columns=feature_columns or RandomForestMateoModel.DEFAULT_FEATURES,
-            target_column=target_column or RandomForestMateoModel.DEFAULT_TARGET,
+            feature_columns=feature_columns or ModelManager.MODELS[model_name].DEFAULT_FEATURES,
+            target_column=target_column or ModelManager.MODELS[model_name].DEFAULT_TARGET,
             test_size=test_size
         )
         return X_train, X_test, y_train, y_test
