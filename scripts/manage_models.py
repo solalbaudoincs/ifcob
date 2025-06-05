@@ -219,13 +219,8 @@ def test(args):
 def compare(args):
     from sklearn.model_selection import ParameterGrid
     X_train, X_test, y_train, y_test = ModelManager.prepare_data(
-<<<<<<< HEAD
         args.features, args.target, test_size=args.test_size, model_name=args.model)
     param_grid = json.loads(args.param_grid)
-=======
-        args.features, args.target, test_size=args.test_size)
-    # param_grid = json.loads(args.param_grid)
->>>>>>> bae3f6d02a56a6db29b5e3243fa776fa2fe204ca
     best_acc = -1
     best_params = None
     # for params in ParameterGrid(param_grid):
