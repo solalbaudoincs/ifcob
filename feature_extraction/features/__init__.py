@@ -15,3 +15,4 @@ from .sharpe_ratio import SharpeRatioClassificationFeature
 from .sharpe_ratio_transfer_entropy import SharpeRatioTransferEntropy
 from .cumulative_return_transfer_entropy import CumulativeReturnTransferEntropy
 from .priceincreases import PriceIncreasesFeature
+from .timeavg import TimeAvgFeature

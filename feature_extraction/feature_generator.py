@@ -8,6 +8,7 @@ in batches, and new features can be easily added.
 
 import sys
 import os
+import traceback
 import pandas as pd
 import numpy as np
 from typing import Dict, List, Callable, Optional, Any
@@ -34,6 +35,7 @@ try:
         SharpeRatioClassificationFeature,
         SharpeRatioTransferEntropy,
         PriceIncreasesFeature,
+        TimeAvgFeature,
     )
 except ImportError:
     from features import (
@@ -132,12 +134,20 @@ class FeatureGenerator:
         self.register_feature(SharpeRatioTransferEntropy(5))
 
         #price increases
-        self.register_feature(PriceIncreasesFeature(5000, 10))
-        self.register_feature(PriceIncreasesFeature(5000, 20))
-        self.register_feature(PriceIncreasesFeature(500, 10))
+        self.register_feature(PriceIncreasesFeature(1000, 10))
+        self.register_feature(PriceIncreasesFeature(500, 20))
+        self.register_feature(PriceIncreasesFeature(250, 10))
+        self.register_feature(PriceIncreasesFeature(100, 10))
         self.register_feature(PriceIncreasesFeature(50, 10))
-        self.register_feature(PriceIncreasesFeature(5, 10))
-    
+
+
+        self.register_feature(TimeAvgFeature(CumulativeVolumeFeature('bid', n_levels), 250))
+        self.register_feature(TimeAvgFeature(CumulativeVolumeFeature('ask', n_levels), 250))
+        self.register_feature(TimeAvgFeature(BookSlopeFeature('bid', n_levels), 250))
+        self.register_feature(TimeAvgFeature(BookSlopeFeature('ask', n_levels), 250))
+        self.register_feature(TimeAvgFeature(LiquidityRatioFeature(n_levels), 250))
+
+
     def register_feature(self, feature: BaseFeature):
         """Register a new feature."""
         self.features[feature.name] = feature
@@ -176,6 +186,7 @@ class FeatureGenerator:
                 try:
                     features_df[feature_name] = self.generate_feature(feature_name, df_cleaned, **kwargs)
                 except Exception as e:
+                    traceback.print_exc()
                     warnings.warn(f"Failed to generate feature '{feature_name}': {str(e)}")
             else:
                 warnings.warn(f"Feature '{feature_name}' is not registered")
