@@ -36,6 +36,22 @@ import argparse
 import json
 from prediction_model.model_manager import ModelManager
 
+import numpy as np
+def to_serializable(obj):
+    if isinstance(obj, np.ndarray):
+        return obj.tolist()
+    if isinstance(obj, (np.int64, np.int32, np.int16, np.int8)):
+        return int(obj)
+    if isinstance(obj, (np.float64, np.float32, np.float16)):
+        return float(obj)
+    return obj
+def recursive_convert(d):
+    if isinstance(d, dict):
+        return {k: recursive_convert(v) for k, v in d.items()}
+    elif isinstance(d, list):
+        return [recursive_convert(v) for v in d]
+    else:
+        return to_serializable(d)
 
 def train(args):
     # Use notebook defaults if not specified
@@ -130,22 +146,6 @@ def train(args):
         print(f"Test accuracy: {results['accuracy']:.4f}")
     # Save hyperparameters and performance
     results = model.evaluate(X_test, y_test)
-    import numpy as np
-    def to_serializable(obj):
-        if isinstance(obj, np.ndarray):
-            return obj.tolist()
-        if isinstance(obj, (np.int64, np.int32, np.int16, np.int8)):
-            return int(obj)
-        if isinstance(obj, (np.float64, np.float32, np.float16)):
-            return float(obj)
-        return obj
-    def recursive_convert(d):
-        if isinstance(d, dict):
-            return {k: recursive_convert(v) for k, v in d.items()}
-        elif isinstance(d, list):
-            return [recursive_convert(v) for v in d]
-        else:
-            return to_serializable(d)
     # Correction: hyperparams must be enrichis et explicites
     # On récupère les vrais hyperparams du modèle sklearn/xgboost si possible
     def get_explicit_hyperparams(model):
@@ -199,8 +199,9 @@ def test(args):
     perf_data = {
         'model': str(args.model),
         'hyperparameters': getattr(model, 'hyperparams', {}),
-        'performance': results
+        'performance': recursive_convert(results)
     }
+    print(perf_data)
     with open(perf_path, 'w') as f:
         json.dump(perf_data, f, indent=2)
     print(f"Performance saved to {perf_path}")
