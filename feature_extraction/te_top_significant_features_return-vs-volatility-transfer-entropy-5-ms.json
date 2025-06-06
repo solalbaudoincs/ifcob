@@ -1,0 +1,114 @@
+{
+  "metadata": {
+    "export_timestamp": "2025-06-06T11:22:19.986572",
+    "analysis_type": "Transfer Entropy Significance Test",
+    "source_features": "XBT_EUR (Bitcoin)",
+    "target_variable": "ETH_EUR (Ethereum)",
+    "significance_level": 0.05,
+    "total_features_tested": 65,
+    "significant_features_found": 55,
+    "top_n_exported": 10
+  },
+  "top_significant_features": [
+    {
+      "rank": 1,
+      "feature_name": "slope-ask-5-levels",
+      "transfer_entropy_value": 0.03451948484548191,
+      "p_value": 1.902645944687433e-23,
+      "chi2_statistic": 0.06903896969096382,
+      "degrees_of_freedom": 36166,
+      "significance_level_indicator": "***",
+      "is_significant": true
+    },
+    {
+      "rank": 2,
+      "feature_name": "slope-bid-5-levels",
+      "transfer_entropy_value": 0.03415045042495362,
+      "p_value": 2.2715878834563e-30,
+      "chi2_statistic": 0.06830090084990724,
+      "degrees_of_freedom": 35364,
+      "significance_level_indicator": "***",
+      "is_significant": true
+    },
+    {
+      "rank": 3,
+      "feature_name": "V-ask-5-levels",
+      "transfer_entropy_value": 0.03346186619360139,
+      "p_value": 3.6143684228702656e-112,
+      "chi2_statistic": 0.06692373238720278,
+      "degrees_of_freedom": 31704,
+      "significance_level_indicator": "***",
+      "is_significant": true
+    },
+    {
+      "rank": 4,
+      "feature_name": "V-bid-5-levels",
+      "transfer_entropy_value": 0.03318213034876378,
+      "p_value": 5.956651560200402e-138,
+      "chi2_statistic": 0.06636426069752756,
+      "degrees_of_freedom": 30772,
+      "significance_level_indicator": "***",
+      "is_significant": true
+    },
+    {
+      "rank": 5,
+      "feature_name": "rate-bid-volume-level-1",
+      "transfer_entropy_value": 0.029179789544155423,
+      "p_value": 1.9060654445695932e-08,
+      "chi2_statistic": 0.058359579088310846,
+      "degrees_of_freedom": 31480,
+      "significance_level_indicator": "***",
+      "is_significant": true
+    },
+    {
+      "rank": 6,
+      "feature_name": "level-1-ask-volume",
+      "transfer_entropy_value": 0.025156466496833108,
+      "p_value": 0.0,
+      "chi2_statistic": 0.050312932993666216,
+      "degrees_of_freedom": 14824,
+      "significance_level_indicator": "***",
+      "is_significant": true
+    },
+    {
+      "rank": 7,
+      "feature_name": "level-7-bid-volume",
+      "transfer_entropy_value": 0.024300172055505394,
+      "p_value": 0.0,
+      "chi2_statistic": 0.04860034411101079,
+      "degrees_of_freedom": 17364,
+      "significance_level_indicator": "***",
+      "is_significant": true
+    },
+    {
+      "rank": 8,
+      "feature_name": "level-8-bid-volume",
+      "transfer_entropy_value": 0.024109697202542583,
+      "p_value": 0.0,
+      "chi2_statistic": 0.048219394405085166,
+      "degrees_of_freedom": 17900,
+      "significance_level_indicator": "***",
+      "is_significant": true
+    },
+    {
+      "rank": 9,
+      "feature_name": "level-10-bid-price",
+      "transfer_entropy_value": 0.024088051553637576,
+      "p_value": 0.0,
+      "chi2_statistic": 0.04817610310727515,
+      "degrees_of_freedom": 16248,
+      "significance_level_indicator": "***",
+      "is_significant": true
+    },
+    {
+      "rank": 10,
+      "feature_name": "level-10-bid-volume",
+      "transfer_entropy_value": 0.024040533661086647,
+      "p_value": 0.0,
+      "chi2_statistic": 0.04808106732217329,
+      "degrees_of_freedom": 17830,
+      "significance_level_indicator": "***",
+      "is_significant": true
+    }
+  ]
+}
