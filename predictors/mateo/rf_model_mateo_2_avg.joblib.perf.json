@@ -1,17 +1,17 @@
 {
   "model": "random_forest_mateo_2",
   "hyperparameters": {
-    "n_estimators": 10,
-    "max_depth": 3,
     "bootstrap": true,
     "ccp_alpha": 0.0,
     "class_weight": "balanced",
     "criterion": "gini",
+    "max_depth": 5,
     "max_features": "sqrt",
     "min_impurity_decrease": 0.0,
     "min_samples_leaf": 1,
     "min_samples_split": 2,
     "min_weight_fraction_leaf": 0.0,
+    "n_estimators": 100,
     "n_jobs": -1,
     "oob_score": false,
     "random_state": 42,
@@ -29,42 +29,42 @@
     "target_column": "avg-10ms-of-mid-price-itincreases-after-200ms-with-threshold-5"
   },
   "performance": {
-    "accuracy": 0.8701562702008324,
+    "accuracy": 0.901916448669599,
     "report": {
       "0": {
-        "precision": 0.983615995317947,
-        "recall": 0.8802936580005865,
-        "f1-score": 0.9290910866250554,
+        "precision": 0.9811729768953553,
+        "recall": 0.916075754427216,
+        "f1-score": 0.947507577887731,
         "support": 351293.0
       },
       "1": {
-        "precision": 0.14432800895309797,
-        "recall": 0.5793041489709245,
-        "f1-score": 0.23108374464480608,
+        "precision": 0.17071249753874715,
+        "recall": 0.495671349232277,
+        "f1-score": 0.25395961920703003,
         "support": 12244.0
       },
-      "accuracy": 0.8701562702008324,
+      "accuracy": 0.901916448669599,
       "macro avg": {
-        "precision": 0.5639720021355225,
-        "recall": 0.7297989034857555,
-        "f1-score": 0.5800874156349307,
+        "precision": 0.5759427372170512,
+        "recall": 0.7058735518297465,
+        "f1-score": 0.6007335985473805,
         "support": 363537.0
       },
       "weighted avg": {
-        "precision": 0.9553486054647788,
-        "recall": 0.8701562702008324,
-        "f1-score": 0.9055820575710494,
+        "precision": 0.9538765033335384,
+        "recall": 0.901916448669599,
+        "f1-score": 0.9241487417690236,
         "support": 363537.0
       }
     },
     "confusion_matrix": [
       [
-        309241,
-        42052
+        321811,
+        29482
       ],
       [
-        5151,
-        7093
+        6175,
+        6069
       ]
     ]
   }

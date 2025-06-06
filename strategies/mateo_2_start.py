@@ -22,7 +22,7 @@ class Mateo2StartStrategy(Strategy):
         data_index (int): Data index for loading precomputed features.
     """
 
-    def __init__(self, window_size=5, data_index=2, model_path="predictors/mateo/target-avg_10ms_of_mid_price_itincreases_after_200ms_with_threshold_5_depth-5_nest-100/model.joblib"):
+    def __init__(self, window_size=5, data_index=1, model_path="predictors/mateo/target-avg_10ms_of_mid_price_itincreases_after_200ms_with_threshold_5_depth-5_nest-100/model.joblib"):
         super().__init__()
         self.model = joblib.load(model_path)
         self.target_eth = 10.0
