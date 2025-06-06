@@ -1,4 +1,4 @@
-from ..backtesting.strategy import Strategy
+from backtesting.strategy import Strategy
 
 
 class LinearRegression(Strategy):

@@ -10,6 +10,7 @@ from backtesting.backtest import Backtester, BacktestConfig
 from backtesting.dataloader import OrderBookDataFromDf
 from strategies.rf_pred_all_signed_strat_mateo import RFPredAllSignedStratMateo, RFPredAllSignedStratMateoCheating
 from strategies.mateo_2_start import Mateo2StartStrategy
+from strategies.trend_following import TFCumulativeReturnStrategy, TFSharpeRatioStrategy
 
 
 class SimpleExampleStrategy(Strategy):
@@ -46,7 +47,7 @@ def create_example_fees_graph() -> FeesGraph:
             ('ETH', 0.00),  # 0.2% fee for XBT->ETH direct trade
         ],
         'ETH': [
-            ('EURC', 0.001),    # 0.15% fee to sell ETH for EURC
+            ('EURC', 0.001),    # 0.1% fee to sell ETH for EURC
             ('XBT', 0.00),  # 0.2% fee for ETH->XBT direct trade
         ]
     }
@@ -99,7 +100,7 @@ def demonstrate_backtesting_architecture():
     backtester = Backtester(dataloader, config)
     
     print("Backtesting Architecture Initialized Successfully")
-    strategies = [Mateo2StartStrategy()]
+    strategies = [Mateo2StartStrategy("predictors/mateo/target-avg_10ms_of_mid_price_itincreases_after_200ms_with_threshold_5_depth-3_nest-10/model.joblib")]
     
     print(f"Data timestamp range: {min_timestamp} to {max_timestamp}")
     print(f"Calibration/validation split at: {split_timestamp}")
@@ -125,10 +126,18 @@ def demonstrate_backtesting_architecture():
 
 
 if __name__ == "__main__":
-    print("=== CRYPTO BACKTESTING ARCHITECTURE ===")
-    print("Consulting-Style Deliverable Implementation")
-    print("Addresses all key research objective points from slides\n")
-    
-    #show_architecture_capabilities()
+    import argparse
+    parser = argparse.ArgumentParser()
+    parser.add_argument('--profile', action='store_true',
+                        help='Profile execution for use with snakeviz')
+    args = parser.parse_args()
+
     print("\n" + "="*50)
-    demonstrate_backtesting_architecture()
+    if args.profile:
+        import cProfile
+        profile_output = "profile_backtesting_example.prof"
+        print(f"Profiling enabled. Output: {profile_output}")
+        cProfile.run('demonstrate_backtesting_architecture()', profile_output)
+        print(f"Profiling complete. Use: snakeviz {profile_output}")
+    else:
+        demonstrate_backtesting_architecture()
