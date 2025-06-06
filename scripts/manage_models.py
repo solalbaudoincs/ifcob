@@ -194,7 +194,7 @@ def test(args):
     print("Classification report:")
     print(json.dumps(results['report'], indent=2))
     # Save performance
-    perf_path = args.load + '.perf.json'
+    perf_path = args.load + 'test.perf.json'
     perf_data = {
         'model': str(args.model),
         'hyperparameters': getattr(model, 'hyperparams', {}),
@@ -275,7 +275,7 @@ def main():
     parser_train.add_argument('--features', required=False, default=None)
     parser_train.add_argument('--target', required=False, default=None)
     parser_train.add_argument('--save', required=False, default=None)
-    parser_train.add_argument('--test_size', type=float, default=0.2)
+    parser_train.add_argument('--test_size', type=float, default=0.5)
     parser_train.add_argument('--n_samples', type=int, default=None, help='Nombre de data points à utiliser (train+test)')
     parser_train.add_argument('--select-best', action='store_true', help='Use best hyperparameters from previous runs if available')
     parser_train.add_argument('--n_estimators', type=int, default=None, help='Number of estimators for the model (if supported)')
@@ -289,7 +289,7 @@ def main():
     parser_test.add_argument('--features', required=True)
     parser_test.add_argument('--target', required=True)
     parser_test.add_argument('--load', required=True)
-    parser_test.add_argument('--test_size', type=float, default=0.2)
+    parser_test.add_argument('--test_size', type=float, default=0.5)
     parser_test.add_argument('--n_samples', type=int, default=None, help='Nombre de data points à utiliser (train+test)')
     parser_test.set_defaults(func=test)
 
@@ -298,7 +298,7 @@ def main():
     parser_compare.add_argument('--model', required=True)
     parser_compare.add_argument('--features', required=True)
     parser_compare.add_argument('--target', required=True)
-    parser_compare.add_argument('--test_size', type=float, default=0.2)
+    parser_compare.add_argument('--test_size', type=float, default=0.5)
     parser_compare.set_defaults(func=compare)
 
     # Select
