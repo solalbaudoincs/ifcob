@@ -126,10 +126,18 @@ def demonstrate_backtesting_architecture():
 
 
 if __name__ == "__main__":
-    print("=== CRYPTO BACKTESTING ARCHITECTURE ===")
-    print("Consulting-Style Deliverable Implementation")
-    print("Addresses all key research objective points from slides\n")
-    
-    #show_architecture_capabilities()
+    import argparse
+    parser = argparse.ArgumentParser()
+    parser.add_argument('--profile', action='store_true',
+                        help='Profile execution for use with snakeviz')
+    args = parser.parse_args()
+
     print("\n" + "="*50)
-    demonstrate_backtesting_architecture()
+    if args.profile:
+        import cProfile
+        profile_output = "profile_backtesting_example.prof"
+        print(f"Profiling enabled. Output: {profile_output}")
+        cProfile.run('demonstrate_backtesting_architecture()', profile_output)
+        print(f"Profiling complete. Use: snakeviz {profile_output}")
+    else:
+        demonstrate_backtesting_architecture()
