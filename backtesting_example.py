@@ -46,7 +46,7 @@ def create_example_fees_graph() -> FeesGraph:
             ('ETH', 0.00),  # 0.2% fee for XBT->ETH direct trade
         ],
         'ETH': [
-            ('EURC', 0.001),    # 0.15% fee to sell ETH for EURC
+            ('EURC', 0.001),    # 0.1% fee to sell ETH for EURC
             ('XBT', 0.00),  # 0.2% fee for ETH->XBT direct trade
         ]
     }

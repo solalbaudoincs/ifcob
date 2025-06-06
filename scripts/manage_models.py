@@ -194,7 +194,7 @@ def test(args):
     print("Classification report:")
     print(json.dumps(results['report'], indent=2))
     # Save performance
-    perf_path = args.load + '.perf.json'
+    perf_path = args.load + 'test.perf.json'
     perf_data = {
         'model': str(args.model),
         'hyperparameters': getattr(model, 'hyperparams', {}),
