@@ -338,12 +338,12 @@ class Backtester:
 
         if trade:
             # Add metadata about the delay
-            trade['decision_timestamp'] = order['decision_timestamp']
+            trade['decision_timestamp'] = datetime.fromtimestamp(order['decision_timestamp']).strftime('%Y-%m-%d %H:%M:%S.%f')[:-3]
             trade['action_runtime'] = order['action_runtime']
             trade['network_latency'] = self.config.network_latency_delta
             trade['total_delay'] = execution_timestamp - \
                 order['decision_timestamp']
-
+            trade['price'] = trade.get('effective_price', 0)
         return trade
 
     def _process_remaining_orders(self, strategy_states: dict):
@@ -704,7 +704,8 @@ class Backtester:
                            strategy_states: dict, windowed_market_data: MarketData):
         """Print detailed status update every 10,000 iterations"""
         print(f"\n{'='*80}")
-        print(f"STATUS UPDATE - Iteration {iteration:,} (Timestep: {current_timestep})")
+        formatted_timestep = datetime.fromtimestamp(current_timestep).strftime('%Y-%m-%d %H:%M:%S.%f')[:-3]
+        print(f"STATUS UPDATE - Iteration {iteration:,} (Timestep: {formatted_timestep})")
         print(f"{'='*80}")
         
         for strategy_name, state in strategy_states.items():
@@ -811,7 +812,8 @@ class Backtester:
                         amount = trade.get('amount', 0)
                         price = trade.get('price', 0)
                         fee = trade.get('fee', 0)
-                        timestamp = trade.get('timestamp', 'unknown')
+                        # Use execution_timestamp as fallback, then decision_timestamp, then 'unknown'
+                        timestamp = trade.get('decision_timestamp', 'unknown')
                         print(f"        {action.upper()} {amount:.6f} {coin} @ ${price:.4f} (fee: ${fee:.4f}) [{timestamp}]")
             else:
                 print(f"   💼 Trading Activity: No trades executed yet")
