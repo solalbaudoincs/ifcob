@@ -9,6 +9,30 @@ out-of-sample performance (Sharpe, hit rate) and net profitability after transac
 
 ---
 
+## Documentation Overview
+
+This project is organized into several modules, each with its own documentation. Below is a summary and quick links to each module's documentation:
+
+- **Backtesting** ([backtesting/README.md](backtesting/README.md))
+  - Event-driven engine for simulating trading strategies on historical order-book data. Includes portfolio management, transaction cost modeling, and extensibility for custom strategies.
+- **Feature Extraction** ([feature_extraction/README.md](feature_extraction/README.md))
+  - Framework for generating financial features from preprocessed order book data. Supports a wide range of features and easy extension.
+- **Preprocessing** ([preprocessing/README.md](preprocessing/README.md))
+  - Tools for converting raw crypto CSV data into structured formats for analysis and ML. Includes both importable modules and CLI scripts.
+  - See also [preprocessing/IMPLEMENTATION_SUMMARY.md](preprocessing/IMPLEMENTATION_SUMMARY.md) for implementation details.
+- **Prediction Model** ([prediction_model/README.md](prediction_model/README.md))
+  - Core components for training, evaluating, and managing ML models for financial prediction. Includes data preprocessing, model management, and example workflows.
+- **Scripts** ([scripts/README.md](scripts/README.md))
+  - Utility scripts for data processing, feature engineering, model management, and automated backtesting. Includes batch processing and feature generation tools.
+- **Strategies** ([strategies/README.md](strategies/README.md))
+  - Collection of trading strategies for backtesting and evaluation. Each strategy is documented with its logic and requirements.
+- **Performance Analysis** ([perf_analysis/README_random_baseline.md](perf_analysis/README_random_baseline.md))
+  - Mathematical background and implementation details for random baseline recall confidence intervals.
+- **External Resources** ([found_documentation.md](found_documentation.md))
+  - Curated links to related projects and documentation for backtesting, lead-lag detection, and crypto trading bots.
+
+---
+
 ## Table of Contents
 - [Project Overview](#project-overview)
 - [Installation](#installation)
