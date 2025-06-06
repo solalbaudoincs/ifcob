@@ -410,12 +410,15 @@ class XGBoostModel(BaseModel):
     XGBoost model basé sur le notebook Xgboost_notebook.ipynb.
     """
     DEFAULT_FEATURES = [
-        "V-bid-5-levels",
-        "V-ask-5-levels",
         "slope-bid-5-levels",
-        "slope-ask-5-levels"
+        "slope-ask-5-levels",
+        "avg-250ms-of-slope-ask-5-levels",
+        "avg-250ms-of-slope-bid-5-levels",
+        "avg-250ms-of-V-bid-5-levels",
+        "avg-250ms-of-V-ask-5-levels",
+        "avg-250ms-of-liquidity-ratio-5-levels",
     ]
-    DEFAULT_TARGET = "return-vs-volatility-5-ms"
+    DEFAULT_TARGET = "avg-10ms-of-mid-price-itincreases-after-200ms-with-threshold-5"
     DEFAULT_FEATURES_PATH = os.path.join(os.path.dirname(__file__), '../data/features/DATA_0/XBT_EUR.parquet')
     DEFAULT_TARGET_PATH = os.path.join(os.path.dirname(__file__), '../data/features/DATA_0/ETH_EUR.parquet')
     DEFAULT_MODEL_PATH = os.path.join(os.path.dirname(__file__), '../predictors/xgboost/xgb_model_5ms_clean.joblib')
@@ -425,9 +428,9 @@ class XGBoostModel(BaseModel):
         self.feature_columns = hyperparams.get('feature_columns', self.DEFAULT_FEATURES)
         self.target_column = hyperparams.get('target_column', self.DEFAULT_TARGET)
         self.model = xgb.XGBClassifier(
-            n_estimators=hyperparams.get('n_estimators', 150),
+            n_estimators=hyperparams.get('n_estimators', 10),
             max_depth=hyperparams.get('max_depth', 5),
-            learning_rate=hyperparams.get('learning_rate', 0.15),
+            learning_rate=hyperparams.get('learning_rate', 0.05),
             subsample=hyperparams.get('subsample', 0.8),
             colsample_bytree=hyperparams.get('colsample_bytree', 0.8),
             random_state=hyperparams.get('random_state', 42),
@@ -490,12 +493,15 @@ class AdaBoostModel(BaseModel):
     AdaBoost model basé sur le notebook adaboost_notebook_clean.ipynb.
     """
     DEFAULT_FEATURES = [
-        "V-bid-5-levels",
-        "V-ask-5-levels",
         "slope-bid-5-levels",
-        "slope-ask-5-levels"
+        "slope-ask-5-levels",
+        "avg-250ms-of-slope-ask-5-levels",
+        "avg-250ms-of-slope-bid-5-levels",
+        "avg-250ms-of-V-bid-5-levels",
+        "avg-250ms-of-V-ask-5-levels",
+        "avg-250ms-of-liquidity-ratio-5-levels",
     ]
-    DEFAULT_TARGET = "return-vs-volatility-5-ms"
+    DEFAULT_TARGET = "avg-10ms-of-mid-price-itincreases-after-200ms-with-threshold-5"
     DEFAULT_FEATURES_PATH = os.path.join(os.path.dirname(__file__), '../data/features/DATA_0/XBT_EUR.parquet')
     DEFAULT_TARGET_PATH = os.path.join(os.path.dirname(__file__), '../data/features/DATA_0/ETH_EUR.parquet')
     DEFAULT_MODEL_PATH = os.path.join(os.path.dirname(__file__), '../predictors/adaboost/ada_model_5ms_clean.joblib')
@@ -506,8 +512,8 @@ class AdaBoostModel(BaseModel):
         self.target_column = hyperparams.get('target_column', self.DEFAULT_TARGET)
         self.model = AdaBoostClassifier(
             estimator=DecisionTreeClassifier(max_depth=hyperparams.get('max_depth', 3)),
-            n_estimators=hyperparams.get('n_estimators', 100),
-            learning_rate=hyperparams.get('learning_rate', 0.1),
+            n_estimators=hyperparams.get('n_estimators', 10),
+            learning_rate=hyperparams.get('learning_rate', 0.3),
             random_state=hyperparams.get('random_state', 42)
         )
 

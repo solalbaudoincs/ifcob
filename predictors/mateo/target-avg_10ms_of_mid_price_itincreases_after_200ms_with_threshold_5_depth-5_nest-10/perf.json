@@ -1,6 +1,7 @@
 {
   "model": "random_forest_mateo",
   "hyperparameters": {
+    "n_estimators": 10,
     "bootstrap": true,
     "ccp_alpha": 0.0,
     "class_weight": "balanced",
@@ -11,7 +12,6 @@
     "min_samples_leaf": 1,
     "min_samples_split": 2,
     "min_weight_fraction_leaf": 0.0,
-    "n_estimators": 100,
     "n_jobs": -1,
     "oob_score": false,
     "random_state": 42,
@@ -29,42 +29,42 @@
     "target_column": "avg-10ms-of-mid-price-itincreases-after-200ms-with-threshold-5"
   },
   "performance": {
-    "accuracy": 0.8873237731929497,
+    "accuracy": 0.8896343425841111,
     "report": {
       "0": {
-        "precision": 0.9743137566849828,
-        "recall": 0.9072242600765534,
-        "f1-score": 0.9395729122840973,
-        "support": 877557.0
+        "precision": 0.98514192347389,
+        "recall": 0.8993518231220092,
+        "f1-score": 0.9402941097688372,
+        "support": 351293.0
       },
       "1": {
-        "precision": 0.11227415960659885,
-        "recall": 0.3291248481749025,
-        "f1-score": 0.16743225554679306,
-        "support": 31286.0
+        "precision": 0.17459613409281913,
+        "recall": 0.6108297941849069,
+        "f1-score": 0.27156862745098037,
+        "support": 12244.0
       },
-      "accuracy": 0.8873237731929497,
+      "accuracy": 0.8896343425841111,
       "macro avg": {
-        "precision": 0.5432939581457908,
-        "recall": 0.618174554125728,
-        "f1-score": 0.5535025839154452,
-        "support": 908843.0
+        "precision": 0.5798690287833546,
+        "recall": 0.755090808653458,
+        "f1-score": 0.6059313686099088,
+        "support": 363537.0
       },
       "weighted avg": {
-        "precision": 0.9446389164384337,
-        "recall": 0.8873237731929497,
-        "f1-score": 0.9129927520290441,
-        "support": 908843.0
+        "precision": 0.957842576653121,
+        "recall": 0.8896343425841111,
+        "f1-score": 0.9177712996958601,
+        "support": 363537.0
       }
     },
     "confusion_matrix": [
       [
-        796141,
-        81416
+        315936,
+        35357
       ],
       [
-        20989,
-        10297
+        4765,
+        7479
       ]
     ]
   }
