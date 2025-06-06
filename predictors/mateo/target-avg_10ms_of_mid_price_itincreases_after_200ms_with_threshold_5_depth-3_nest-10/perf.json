@@ -1,5 +1,5 @@
 {
-  "model": "random_forest_mateo_2",
+  "model": "random_forest_mateo",
   "hyperparameters": {
     "n_estimators": 10,
     "max_depth": 3,

@@ -18,12 +18,12 @@ class Mateo2StartStrategy(Strategy):
       - Otherwise, holds (returns empty action).
 
     Args:
-        window_size (int): The window size (in ms) for the model features.
+        model_path (str): Path to the pre-trained model file.
     """
 
-    def __init__(self, window_size=5):
+    def __init__(self, model_path="predictors/mateo/target-avg_10ms_of_mid_price_itincreases_after_200ms_with_threshold_5_depth-5_nest-100/model.joblib"):
         super().__init__()
-        self.model = joblib.load(f"predictors/mateo/target-avg_10ms_of_mid_price_itincreases_after_200ms_with_threshold_5_depth-5_nest-100/model.joblib")
+        self.model = joblib.load(model_path)
         self.target_eth = 10.0
         self.btc_df = pd.read_parquet("data/features/DATA_1/XBT_EUR.parquet")
         self.prediction = self.model.predict(self.btc_df[[
