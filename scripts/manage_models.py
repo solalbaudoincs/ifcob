@@ -60,8 +60,7 @@ def train(args):
         else:
             print("No previous hyperparameters found. Proceeding with defaults or provided values.")
     if not args.features or not args.target:
-        from prediction_model.model_manager import RandomForestMateoModel
-        features_path, target_path, model_path = RandomForestMateoModel.get_default_paths()
+        features_path, target_path, model_path = ModelManager.MODELS[args.model].get_default_paths()
         if not args.features:
             args.features = features_path
         if not args.target:
@@ -69,7 +68,7 @@ def train(args):
         if not args.save:
             args.save = model_path
     X_train, X_test, y_train, y_test = ModelManager.prepare_data(
-        args.features, args.target, test_size=args.test_size, n_samples=args.n_samples)
+        args.features, args.target, test_size=args.test_size, n_samples=args.n_samples, model_name=args.model)
     # Collect supported hyperparameters
     model_kwargs = {}
     if getattr(args, 'n_estimators', None) is not None:

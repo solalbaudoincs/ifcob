@@ -188,6 +188,138 @@ class RandomForestMateoModel(BaseModel):
 
     def predict(self, X: pd.DataFrame) -> np.ndarray:
         return self.model.predict(X)
+
+class RandomForestMateoModel2(BaseModel):
+    """
+    Random Forest model as implemented in model_mateo_clean.ipynb.
+    """
+    DEFAULT_FEATURES = [
+        "slope-bid-5-levels",
+        "slope-ask-5-levels",
+        "avg-250ms-of-slope-ask-5-levels",
+        "avg-250ms-of-slope-bid-5-levels",
+        "avg-250ms-of-V-bid-5-levels",
+        "avg-250ms-of-V-ask-5-levels",
+        "avg-250ms-of-liquidity-ratio-5-levels",
+    ]
+    DEFAULT_TARGET = "avg-10ms-of-mid-price-itincreases-after-200ms-with-threshold-5"
+    DEFAULT_FEATURES_PATH = os.path.join(os.path.dirname(__file__), '../data/features/DATA_0/XBT_EUR.parquet')
+    DEFAULT_TARGET_PATH = os.path.join(os.path.dirname(__file__), '../data/features/DATA_0/ETH_EUR.parquet')
+    DEFAULT_MODEL_PATH = os.path.join(os.path.dirname(__file__), '../predictors/mateo/rf_model_mateo_2_avg.joblib')
+
+    def __init__(self, **hyperparams):
+        super().__init__(**hyperparams)
+        self.feature_columns = hyperparams.get('feature_columns', self.DEFAULT_FEATURES)
+        self.target_column = hyperparams.get('target_column', self.DEFAULT_TARGET)
+        self.model = RandomForestClassifier(
+            n_estimators=hyperparams.get('n_estimators', 100),
+            max_depth=hyperparams.get('max_depth', 5),
+            class_weight=hyperparams.get('class_weight', 'balanced'),
+            random_state=hyperparams.get('random_state', 42),
+            n_jobs=hyperparams.get('n_jobs', -1)
+        )
+
+    @classmethod
+    def get_default_paths(cls):
+        return cls.DEFAULT_FEATURES_PATH, cls.DEFAULT_TARGET_PATH, cls.DEFAULT_MODEL_PATH
+
+    def train_and_report(self, X_train, X_test, y_train, y_test, save_path=None):
+        from sklearn.metrics import accuracy_score, classification_report, confusion_matrix
+        import os
+        import json
+        # Génération d'un nom de dossier basé sur target_column, max_depth, n_estimators
+        def get_model_id():
+            import re
+            params = self.model.get_params() if hasattr(self.model, 'get_params') else getattr(self, 'hyperparams', {})
+            target = getattr(self, 'target_column', None)
+            n_estimators = params.get('n_estimators', None)
+            max_depth = params.get('max_depth', None)
+            def clean(val):
+                if val is None:
+                    return 'NA'
+                return re.sub(r'[^a-zA-Z0-9_]', '_', str(val))
+            parts = [
+                f"target-{clean(target)}" if target else None,
+                f"depth-{max_depth}" if max_depth is not None else None,
+                f"nest-{n_estimators}" if n_estimators is not None else None
+            ]
+            parts = [p for p in parts if p]
+            return "_".join(parts)
+        # Si save_path n'est pas précisé, on génère un chemin par défaut
+        if not save_path:
+            model_id = get_model_id()
+            model_dir = os.path.join('predictors', 'mateo', model_id)
+            os.makedirs(model_dir, exist_ok=True)
+            save_path = os.path.join(model_dir, 'model.joblib')
+        else:
+            # Si save_path est un .joblib, on prend le nom du dossier parent et on ajoute le model_id
+            base_dir = os.path.dirname(save_path)
+            model_id = get_model_id()
+            model_dir = os.path.join(base_dir, model_id)
+            os.makedirs(model_dir, exist_ok=True)
+            save_path = os.path.join(model_dir, 'model.joblib')
+        self.model.fit(X_train, y_train)
+        print("Modèle Random Forest entraîné!")
+        y_pred = self.model.predict(X_test)
+        y_train_pred = self.model.predict(X_train)
+        train_acc = accuracy_score(y_train, y_train_pred)
+        test_acc = accuracy_score(y_test, y_pred)
+        print(f"\n=== RÉSULTATS DU MODÈLE RANDOM FOREST ===")
+        print(f"Train Accuracy: {train_acc:.4f}")
+        print(f"Test Accuracy: {test_acc:.4f}")
+        print(f"Différence (overfitting): {train_acc - test_acc:.4f}")
+        actual_labels = sorted(set(list(y_test) + list(y_pred)))
+        print(f"\nClasses présentes: {actual_labels}")
+        print("\n=== CLASSIFICATION REPORT (TEST SET) ===")
+        print(classification_report(y_test, y_pred, labels=actual_labels))
+        print("\n=== CONFUSION MATRIX (TEST SET) ===")
+        print(confusion_matrix(y_test, y_pred, labels=actual_labels))
+        print("Classes dans y_train:", set(y_train))
+        print("Classes dans y_test:", set(y_test))
+        print("Classes dans y_pred:", set(y_pred))
+        feature_importance = pd.DataFrame({
+            'feature': self.feature_columns,
+            'importance': self.model.feature_importances_
+        }).sort_values('importance', ascending=False)
+        print("\n=== IMPORTANCE DES FEATURES ===")
+        print(feature_importance)
+        joblib.dump(self.model, save_path)
+        print(f"\nModèle sauvegardé dans '{save_path}'")
+        # Récupération des hyperparamètres explicites pour la sauvegarde des perfs
+        params = dict(getattr(self, 'hyperparams', {}))
+        if hasattr(self, 'model') and hasattr(self.model, 'get_params'):
+            params.update(self.model.get_params())
+        if hasattr(self, 'feature_columns'):
+            params['feature_columns'] = self.feature_columns
+        if hasattr(self, 'target_column'):
+            params['target_column'] = self.target_column
+        # Nettoyage des valeurs None ou NaN
+        import math
+        def is_valid(v):
+            if v is None:
+                return False
+            if isinstance(v, float) and (math.isnan(v) or v is None):
+                return False
+            return True
+        params = {k: v for k, v in params.items() if is_valid(v)}
+        # Sauvegarde des performances dans le même dossier
+        perf_data = {
+            'model': 'random_forest_mateo',
+            'hyperparameters': params,
+            'performance': {
+                'accuracy': test_acc,
+                'report': classification_report(y_test, y_pred, output_dict=True),
+                'confusion_matrix': confusion_matrix(y_test, y_pred, labels=actual_labels).tolist()
+            }
+        }
+        perf_file = os.path.join(model_dir, 'perf.json')
+        with open(perf_file, 'w') as f:
+            json.dump(perf_data, f, indent=2)
+        print(f"Performance sauvegardée dans '{perf_file}'")
+        print("\n=== ANALYSE TERMINÉE ===")
+
+    def predict(self, X: pd.DataFrame) -> np.ndarray:
+        return self.model.predict(X)
     
 class RandomForestModel(BaseModel):
     """
@@ -424,6 +556,7 @@ class ModelManager:
     """
     MODELS = {
         'random_forest_mateo': RandomForestMateoModel,
+        'random_forest_mateo_2': RandomForestMateoModel2,
         'xgboost': XGBoostModel,
         'adaboost': AdaBoostModel,
         'random_forest_chakib': RandomForestModel,
@@ -450,8 +583,8 @@ class ModelManager:
         X_train, X_test, y_train, y_test = preprocessor.prepare_data(
             features_df=features_df,
             target_df=target_df,
-            feature_columns=feature_columns or ModelManager.MODELS[model_name].DEFAULT_FEATURES,
-            target_column=target_column or ModelManager.MODELS[model_name].DEFAULT_TARGET,
+            feature_columns=ModelManager.MODELS[model_name].DEFAULT_FEATURES,
+            target_column=ModelManager.MODELS[model_name].DEFAULT_TARGET,
             test_size=test_size
         )
         return X_train, X_test, y_train, y_test
