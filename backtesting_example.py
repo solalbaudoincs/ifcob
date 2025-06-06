@@ -126,6 +126,7 @@ def demonstrate_backtesting_architecture():
 
 
 if __name__ == "__main__":
+    import argparse
     parser = argparse.ArgumentParser()
     parser.add_argument('--profile', action='store_true',
                         help='Profile execution for use with snakeviz')
