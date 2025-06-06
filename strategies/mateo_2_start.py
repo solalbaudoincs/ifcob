@@ -18,13 +18,14 @@ class Mateo2StartStrategy(Strategy):
 
     Args:
         window_size (int): The window size (in ms) for the model features.
+        data_index (int): Data index for loading precomputed features.
     """
 
-    def __init__(self, window_size=5):
+    def __init__(self, window_size=5, data_index=2):
         super().__init__()
         self.model = joblib.load(f"predictors/mateo/target-avg_10ms_of_mid_price_itincreases_after_200ms_with_threshold_5_depth-5_nest-100/model.joblib")
         self.target_eth = 10.0
-        self.btc_df = pd.read_parquet("data/features/DATA_1/XBT_EUR.parquet")
+        self.btc_df = pd.read_parquet(f"data/features/DATA_{data_index}/XBT_EUR.parquet")
         self.prediction = self.model.predict(self.btc_df[[
             "slope-bid-5-levels",
             "slope-ask-5-levels",
@@ -75,6 +76,6 @@ class Mateo2StartStrategy(Strategy):
             self.program_trade(-0.01, current_timestamp+200)
         orders["ETH"] += self.needed_trade_amount(current_timestamp)
         return orders
-        
+
 
 
