@@ -10,6 +10,7 @@ from backtesting.backtest import Backtester, BacktestConfig
 from backtesting.dataloader import OrderBookDataFromDf
 from strategies.rf_pred_all_signed_strat_mateo import RFPredAllSignedStratMateo, RFPredAllSignedStratMateoCheating
 from strategies.mateo_2_start import Mateo2StartStrategy
+from strategies.trend_following import TFCumulativeReturnStrategy, TFSharpeRatioStrategy
 
 
 class SimpleExampleStrategy(Strategy):
@@ -46,7 +47,7 @@ def create_example_fees_graph() -> FeesGraph:
             ('ETH', 0.00),  # 0.2% fee for XBT->ETH direct trade
         ],
         'ETH': [
-            ('EURC', 0.001),    # 0.15% fee to sell ETH for EURC
+            ('EURC', 0.001),    # 0.1% fee to sell ETH for EURC
             ('XBT', 0.00),  # 0.2% fee for ETH->XBT direct trade
         ]
     }
@@ -99,7 +100,7 @@ def demonstrate_backtesting_architecture():
     backtester = Backtester(dataloader, config)
     
     print("Backtesting Architecture Initialized Successfully")
-    strategies = [Mateo2StartStrategy()]
+    strategies = [TFSharpeRatioStrategy()]
     
     print(f"Data timestamp range: {min_timestamp} to {max_timestamp}")
     print(f"Calibration/validation split at: {split_timestamp}")

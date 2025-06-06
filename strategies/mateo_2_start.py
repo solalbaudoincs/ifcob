@@ -4,6 +4,7 @@ from backtesting.portfolio import Portfolio
 import joblib
 import pandas as pd
 import time
+import heapq
 
 class Mateo2StartStrategy(Strategy):
     """
@@ -37,6 +38,7 @@ class Mateo2StartStrategy(Strategy):
         ]])
         self.prediction = pd.Series(self.prediction, index=self.btc_df.index)
         self.buy_orders = []
+        heapq.heapify(self.buy_orders)
         #print(self.prediction.shape)
     
     def program_trade(self, eth_amount: float, timestamp : float):
@@ -44,13 +46,12 @@ class Mateo2StartStrategy(Strategy):
 
     def needed_trade_amount(self, current_timestamp):
         adujstment = 0.0
-        to_remove = []
         for ts, amt in self.buy_orders:
             if ts < current_timestamp:
                 adujstment += amt
-                to_remove.append((ts, amt))
-        for item in to_remove:
-            self.buy_orders.remove(item)
+                heapq.heappop(self.buy_orders)
+            else:
+                break
         return adujstment
 
                 
