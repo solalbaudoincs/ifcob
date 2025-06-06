@@ -40,7 +40,7 @@ class TFCumulativeReturnStrategy(Strategy):
                 - {"ETH": 0} for hold
         """
         
-        cumulative_return = data["ETH"][f"return-vs-volatility-{self.window_size}-ms"]
+        cumulative_return = data["ETH"][f"return-vs-volatility-{self.window_size}-ms"].iloc[-1].values[0]
         
         return {"ETH": 0.1 * cumulative_return}
 
@@ -79,6 +79,6 @@ class TFSharpeRatioStrategy(Strategy):
                 - {"ETH": 0} for hold
         """
         
-        sharpe_ratio = data["ETH"][f"sharpe-ratio-quantile-calibrated-{self.window_size}-ms"]
+        sharpe_ratio = data["ETH"].iloc[-1][[f"sharpe-ratio-quantile-calibrated-{self.window_size}-ms"]].values[0]
         
         return {"ETH": 0.1 * sharpe_ratio}

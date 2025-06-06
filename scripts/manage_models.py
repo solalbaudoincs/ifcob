@@ -184,7 +184,6 @@ def train(args):
         json.dump(perf_data, f, indent=2)
     print(f"Performance saved to {perf_path}")
 
-
 def test(args):
     X_train, X_test, y_train, y_test = ModelManager.prepare_data(
         args.features, args.target, test_size=args.test_size, n_samples=args.n_samples, model_name=args.model)
