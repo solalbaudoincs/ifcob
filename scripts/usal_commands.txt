@@ -1,0 +1,5 @@
+
+Testing random_forest_mateo_2:
+
+python .\scripts\manage_models.py test --load predictors/mateo\target-avg_10ms_of_mid_price_itincreases_after_200ms_with_threshold_5_depth-5_nest-100\model.joblib --target data\features\DATA_1\ETH_EUR.parquet --features data\features\DATA_1\XBT_EUR.parquet  --model random_forest_mateo_2
+
