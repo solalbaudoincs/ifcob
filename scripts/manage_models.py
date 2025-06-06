@@ -69,18 +69,6 @@ def train(args):
         if not args.save:
             args.save = model_path
     X_train, X_test, y_train, y_test = ModelManager.prepare_data(
-<<<<<<< HEAD
-        args.features, args.target, test_size=args.test_size, n_samples=args.n_samples, model_name=args.model)
-    model = ModelManager.get_model(args.model)
-    # If --params is provided, update args with those hyperparameters
-    if hasattr(args, 'params') and args.params:
-        try:
-            user_params = json.loads(args.params)
-            print(f"Using user-specified hyperparameters: {user_params}")
-            args.__dict__.update(user_params)
-        except Exception as e:
-            print(f"Could not parse --params JSON: {e}")
-=======
         args.features, args.target, test_size=args.test_size, n_samples=args.n_samples)
     # Collect supported hyperparameters
     model_kwargs = {}
@@ -91,7 +79,6 @@ def train(args):
     if getattr(args, 'learning_rate', None) is not None:
         model_kwargs['learning_rate'] = args.learning_rate
     model = ModelManager.get_model(args.model, **model_kwargs)
->>>>>>> 5851b60869f94a927b433faf34c344effce92fbe
     # Génération d'un nom de fichier reconnaissable basé sur quelques caractéristiques du modèle
     def get_model_id(model, args):
         import re
@@ -197,7 +184,6 @@ def train(args):
     with open(perf_path, 'w') as f:
         json.dump(perf_data, f, indent=2)
     print(f"Performance saved to {perf_path}")
-
 
 def test(args):
     X_train, X_test, y_train, y_test = ModelManager.prepare_data(
