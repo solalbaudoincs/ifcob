@@ -9,8 +9,8 @@ from backtesting.portfolio import Portfolio
 from backtesting.backtest import Backtester, BacktestConfig
 from backtesting.dataloader import OrderBookDataFromDf
 from strategies.rf_pred_all_signed_strat_mateo import RFPredAllSignedStratMateo, RFPredAllSignedStratMateoCheating
-from strategies.momentum_strategy import MomentumStrategy
-import argparse
+from strategies.mateo_2_start import Mateo2StartStrategy
+
 
 class SimpleExampleStrategy(Strategy):
     """
@@ -39,14 +39,14 @@ def create_example_fees_graph() -> FeesGraph:
     return {
         'EURC': [
             ('XBT', 0.00),  # 0.1% fee to buy XBT with EURC
-            ('ETH', 0.00),  # 0.1% fee to buy ETH with EURC
+            ('ETH', 0.001),  # 0.1% fee to buy ETH with EURC
         ],
         'XBT': [
             ('EURC', 0.00),    # 0.15% fee to sell XBT for EURC (slightly higher)
             ('ETH', 0.00),  # 0.2% fee for XBT->ETH direct trade
         ],
         'ETH': [
-            ('EURC', 0.00),    # 0.15% fee to sell ETH for EURC
+            ('EURC', 0.001),    # 0.15% fee to sell ETH for EURC
             ('XBT', 0.00),  # 0.2% fee for ETH->XBT direct trade
         ]
     }
@@ -99,7 +99,7 @@ def demonstrate_backtesting_architecture():
     backtester = Backtester(dataloader, config)
     
     print("Backtesting Architecture Initialized Successfully")
-    strategies = [RFPredAllSignedStratMateoCheating()]
+    strategies = [Mateo2StartStrategy()]
     
     print(f"Data timestamp range: {min_timestamp} to {max_timestamp}")
     print(f"Calibration/validation split at: {split_timestamp}")

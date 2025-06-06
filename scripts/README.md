@@ -1,11 +1,10 @@
 # Scripts
 
-This folder contains utility scripts for cryptocurrency data processing and analysis.
+This folder contains utility scripts for cryptocurrency data processing, feature engineering, and model management.
 
 ## Available Scripts
 
 ### `preprocess_all_data.py`
-
 Batch preprocessing script that processes all XBT and ETH data files across multiple DATA folders (DATA_0, DATA_1, DATA_2).
 
 **Features:**
@@ -18,77 +17,76 @@ Batch preprocessing script that processes all XBT and ETH data files across mult
 - Performance metrics and processing statistics
 
 **Usage:**
-
 ```bash
-# Basic usage - process all available data
-python scripts/preprocess_all_data.py
-
-# Check which files are available without processing
-python scripts/preprocess_all_data.py --check-only
-
-# Use custom block size
-python scripts/preprocess_all_data.py --block-size 30
-
-# Force overwrite existing files
-python scripts/preprocess_all_data.py --force
-
-# Combine options
-python scripts/preprocess_all_data.py --block-size 25 --force
+python scripts/preprocess_all_data.py [options]
 ```
 
-**Command Line Options:**
+---
 
-- `--block-size`: Block size for preprocessing (default: 20)
-- `--force`: Overwrite existing output files
-- `--check-only`: Only check which files exist, do not process
-- `--base-path`: Base path to the project (default: auto-detect)
-- `--help`: Show help message and usage examples
+### `generate_features.py`
+Feature generation script for preprocessed order book data. Supports generating all, specific, or individual features.
 
-**Example Output:**
+**Features:**
+- Generate features for a given coin and data version
+- Select specific features to generate
+- List available features
+- Overwrite existing features
 
+**Usage:**
+```bash
+python scripts/generate_features.py --coin ETH --data-version 2
+python scripts/generate_features.py --coin XBT --data-version 1 --features spread bid-ask-imbalance-5-levels
+python scripts/generate_features.py --coin ETH --data-version 2 --list-features
 ```
-🔄 Cryptocurrency Data Batch Preprocessor
-============================================================
-📅 Started at: 2025-06-03 14:30:00
-📂 Project path: /path/to/ifcob
-📂 Raw data path: /path/to/ifcob/data/raw
-📂 Output path: /path/to/ifcob/data/preprocessed
 
-🔍 Scanning for input files...
-============================================================
+---
 
-📁 Checking DATA_0:
-  ✅ XBT_EUR.csv (842.3 MB)
-  ✅ ETH_EUR.csv (2567.1 MB)
+### `create_feature.py`
 
-📁 Checking DATA_1:
-  ❌ XBT_EUR.csv (not found)
-  ❌ ETH_EUR.csv (not found)
+Feature template generator and feature management utility.
 
-📁 Checking DATA_2:
-  ❌ XBT_EUR.csv (not found)
-  ❌ ETH_EUR.csv (not found)
+**Features:**
+- Generate new feature class templates and files
+- Automatically add imports to `feature_extraction/features/__init__.py` and `feature_generator.py`
+- Remove features and clean up all related imports and files
 
-📊 Summary: Found 2 files to process
-📊 Total data size: 3409.4 MB
+**Usage:**
+```bash
+# Create a new feature
+python scripts/create_feature.py --name MyNewFeature --description "Description of the feature"
 
-🔄 Processing 2 files with block_size=20...
-
-[1/2] Processing DATA_0/XBT...
-Processing XBT data from data\raw\DATA_0\XBT_EUR.csv
-Loaded 17601860 rows
-Applied vectorized preprocessing with block_size=20
-Found 4336 duplicate rows, removing them...
-After cleaning: 17597524 rows
-Converted to wide format: (880093, 40)
-Saved preprocessed data to data\preprocessed\DATA_0\XBT_EUR.parquet
-  ✅ Success! Output shape: (880093, 40)
-  ⏱️  Processing time: 45.2 seconds
-
-[2/2] Processing DATA_0/ETH...
-Processing ETH data from data\raw\DATA_0\ETH_EUR.csv
-...
+# Remove a feature (deletes file and cleans up imports)
+python scripts/create_feature.py --remove MyNewFeature
 ```
+
+---
+
+### `manage_models.py`
+
+Script to train, test, tune, and compare models using the ModelManager.
+
+**Features:**
+- Train a model with optional hyperparameters: `--n_estimators`, `--max_depth`, `--learning_rate`
+- Test a model and print/save performance report
+- Compare models (hyperparameters must be set directly via CLI arguments)
+- Select and display the best hyperparameters from previous runs
+
+**Usage:**
+```bash
+# Train a model (with optional hyperparameters)
+python scripts/manage_models.py train --model random_forest_mateo --features <features_path> --target <target_path> [--n_estimators 5] [--max_depth 3] [--learning_rate 0.1]
+
+# Test a model
+python scripts/manage_models.py test --model random_forest_mateo --features <features_path> --target <target_path> --load <model_path>
+
+# Compare models (set hyperparameters directly)
+python scripts/manage_models.py compare --model random_forest_mateo --features <features_path> --target <target_path>
+
+# Select best hyperparameters from previous runs
+python scripts/manage_models.py select --model random_forest_mateo
+```
+
+---
 
 ## Directory Structure
 
@@ -96,18 +94,22 @@ Processing ETH data from data\raw\DATA_0\ETH_EUR.csv
 scripts/
 ├── __init__.py                 # Package initialization
 ├── README.md                   # This file
-└── preprocess_all_data.py      # Batch preprocessing script
+├── preprocess_all_data.py      # Batch preprocessing script
+├── generate_features.py        # Feature generation script
+├── create_feature.py           # Feature template generator
+├── manage_models.py            # Model training/testing script
 ```
 
 ## Integration
 
-The scripts use the preprocessing module from the main project:
+The scripts use the preprocessing and prediction modules from the main project:
 
 ```python
 from preprocessing import preprocess_crypto_data, preprocess_data_folder
+from prediction_model.model_manager import ModelManager
 ```
 
-Make sure the preprocessing module is properly installed or available in the Python path.
+Make sure the required modules are properly installed or available in the Python path.
 
 ## Error Handling
 
@@ -120,7 +122,7 @@ The scripts include comprehensive error handling:
 
 ## Performance
 
-The batch processor provides performance metrics:
+The batch processor and feature generator provide performance metrics:
 - Processing time per file
 - Processing rate (MB/s)
 - Total processing time

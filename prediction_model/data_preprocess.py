@@ -136,7 +136,15 @@ class DataPreprocessor:
         X_test = X[split_index:]
         y_train = y_encoded[:split_index]
         y_test = y_encoded[split_index:]
-        
+
+        # Limitation du nombre de points si demandé (après split)
+        if hasattr(self, 'n_samples_limit') and self.n_samples_limit is not None:
+            n = self.n_samples_limit
+            X_train = X_train[:n]
+            X_test = X_test[:n]
+            y_train = y_train[:n]
+            y_test = y_test[:n]
+
         print(f"Train set: {X_train.shape}, Test set: {X_test.shape}")
 
         return X_train, X_test, y_train, y_test

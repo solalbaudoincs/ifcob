@@ -7,6 +7,37 @@ lead-lag signals. The task is to design and backtest a strategy that uses order-
 bid-ask imbalance, depth shifts) of one coin to predict short-term returns on another, assessing
 out-of-sample performance (Sharpe, hit rate) and net profitability after transaction costs.
 
+---
+
+## Table of Contents
+- [Project Overview](#project-overview)
+- [Installation](#installation)
+- [Project Structure](#project-structure)
+  - [Backtesting](#backtesting-backtesting)
+  - [Data Preprocessing](#data-preprocessing-preprocessing)
+- [Contributing](#contributing)
+- [License](#license)
+- [Contact](#contact)
+
+---
+
+## Project Overview
+A modular framework for analyzing information flow in crypto order-books, featuring event-driven backtesting, advanced data preprocessing, and support for custom trading strategies.
+
+## Installation
+
+1. Clone the repository:
+   ```bash
+   git clone <repo-url>
+   cd ifcob
+   ```
+2. Install dependencies:
+   ```bash
+   pip install -r requirements.txt
+   ```
+
+---
+
 ## Project Structure
 
 ### Backtesting (`backtesting/`)
@@ -37,8 +68,9 @@ results = bt.run()
 print(results.summary())
 ```
 
-See `backtesting/README.md` for detailed documentation.
+See [`backtesting/README.md`](backtesting/README.md) for detailed documentation.
 
+---
 
 ### Data Preprocessing (`preprocessing/`)
 
@@ -71,4 +103,15 @@ python preprocessing/preprocess_script.py -i data/raw/DATA_0 -o data/preprocesse
 python preprocessing/preprocess_script.py -i data/raw/DATA_0 -o data/preprocessed/DATA_0 --coins XBT ETH
 ```
 
-See `preprocessing/README.md` for detailed documentation.
+See [`preprocessing/README.md`](preprocessing/README.md) for detailed documentation.
+
+---
+
+## Contributing
+Contributions are welcome! Please open issues or submit pull requests for improvements or bug fixes.
+
+## License
+This project is licensed under the terms of the LICENSE file in this repository.
+
+## Contact
+For questions or collaboration, please contact the project maintainer.

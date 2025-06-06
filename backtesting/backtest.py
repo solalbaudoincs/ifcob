@@ -14,7 +14,20 @@ from datetime import datetime
 
 @dataclass
 class BacktestResult:
-    """Results from a backtest run"""
+    """
+    Results from a backtest run.
+
+    Attributes:
+        portfolio_values (List[float]): Portfolio value at each recorded timestamp.
+        timestamps (List[float]): Timestamps corresponding to each portfolio value.
+        trades (List[Dict]): List of executed trades with details.
+        total_return (float): Total return over the period.
+        sharpe_ratio (float): Sharpe ratio over the period.
+        max_drawdown (float): Maximum drawdown observed.
+        win_rate (float): Proportion of profitable sell trades.
+        transaction_costs (float): Total transaction costs incurred.
+        final_portfolio_value (float): Portfolio value at the end of the period.
+    """
     portfolio_values: List[float]
     timestamps: List[float]
     trades: List[Dict]
@@ -28,7 +41,20 @@ class BacktestResult:
 
 @dataclass
 class BacktestConfig:
-    """Configuration for backtest execution"""
+    """
+    Configuration for backtest execution.
+
+    Attributes:
+        initial_capital (float): Starting capital for each strategy.
+        fees_graph (FeesGraph): Transaction fee structure.
+        symbols (List[Coin]): List of traded symbols.
+        window_size (int): Number of last rows to include in windowed market data.
+        calibration_end_time (Optional[TimeStep]): End of in-sample data.
+        validation_start_time (Optional[TimeStep]): Start of out-of-sample data.
+        max_action_runtime (float): Max time allowed for get_action (seconds).
+        skip_on_timeout (bool): Skip timestep if action takes too long.
+        network_latency_delta (float): Network latency in seconds (delta).
+    """
     initial_capital: float
     fees_graph: FeesGraph
     symbols: List[Coin]
@@ -47,6 +73,28 @@ class BacktestConfig:
 
 
 class Backtester:
+    """
+    Backtester for running and evaluating trading strategies on historical data.
+
+    Methods:
+        - backtest(strategies): Runs the backtest for a list of strategies.
+        - save_results_to_files(...): Saves backtest results to JSON/CSV files.
+        - _schedule_orders(...): Schedules orders for execution.
+        - _process_pending_orders(...): Processes orders due for execution.
+        - _execute_scheduled_order(...): Executes a single scheduled order.
+        - _process_remaining_orders(...): Processes any remaining orders at the end.
+        - _get_timed_action(...): Measures runtime of strategy.get_action().
+        - _print_runtime_stats(): Prints runtime statistics for all strategies.
+        - _build_results(...): Builds BacktestResult objects for each strategy.
+        - _calculate_metrics_from_data(...): Calculates performance metrics from history and trades.
+        - _create_windowed_market_data(...): Creates windowed market data for each coin.
+        - _print_status_update(...): Prints a detailed status update at intervals.
+
+    Example usage:
+        config = BacktestConfig(...)
+        backtester = Backtester(dataloader, config)
+        results = backtester.backtest([MyStrategy()])
+    """
 
     def __init__(self, dataloader: OrderBookDataLoader, config: BacktestConfig) -> None:
         self.dataloader = dataloader
@@ -59,6 +107,12 @@ class Backtester:
         """
         Tests multiple strategies in parallel with realistic execution delays.
         Portfolios are updated at execution time (timestamp + runtime + delta), not decision time.
+
+        Args:
+            strategies (List[Strategy]): List of strategy instances to test.
+
+        Returns:
+            Dict[str, Tuple[BacktestResult, BacktestResult]]: Mapping from strategy name to (calibration, validation) results.
         """
         if not self.config.calibration_end_time or not self.config.validation_start_time:
             raise ValueError(
@@ -436,6 +490,14 @@ class Backtester:
         """
         Create windowed market data containing the k last rows for each coin up to current_timestep.
         Uses coin indices from chronological_iterator for efficient processing.
+
+        Args:
+            current_timestep (TimeStep): The current timestep in the backtest.
+            coin_indices (dict): Dictionary mapping coins to their latest data indices.
+            window_size (int): The number of rows to include in the windowed data.
+
+        Returns:
+            MarketData: Dictionary of DataFrames containing windowed market data for each coin.
         """
         windowed_data = {}
         for coin in self.config.symbols:
@@ -470,14 +532,13 @@ class Backtester:
                             save_csv: bool = True) -> Dict[str, str]:
         """
         Save backtest results to files in JSON and/or CSV format.
-        
+
         Args:
             results: Dictionary of strategy results from backtest()
             output_dir: Directory to save files (will be created if doesn't exist)
             timestamp_suffix: Whether to add timestamp to filenames
             save_json: Whether to save results in JSON format
             save_csv: Whether to save results in CSV format
-            
         Returns:
             Dictionary mapping file types to saved file paths
         """

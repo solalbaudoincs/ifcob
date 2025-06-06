@@ -8,6 +8,7 @@ in batches, and new features can be easily added.
 
 import sys
 import os
+import traceback
 import pandas as pd
 import numpy as np
 from typing import Dict, List, Callable, Optional, Any
@@ -33,7 +34,10 @@ try:
         CumulativeReturnTransferEntropy,
         SharpeRatioClassificationFeature,
         SharpeRatioTransferEntropy,
-
+        PriceIncreasesFeature,
+        TimeAvgFeature,
+        MidPriceFeature,
+        ItIncreasesFeature,
     )
 except ImportError:
     from features import (
@@ -130,7 +134,31 @@ class FeatureGenerator:
         #Sharpe ratio
         self.register_feature(SharpeRatioClassificationFeature(5))
         self.register_feature(SharpeRatioTransferEntropy(5))
-    
+
+        #price increases
+        self.register_feature(PriceIncreasesFeature(1000, 10))
+        self.register_feature(PriceIncreasesFeature(500, 10))
+        self.register_feature(PriceIncreasesFeature(250, 10))
+        self.register_feature(PriceIncreasesFeature(100, 10))
+        self.register_feature(PriceIncreasesFeature(50, 10))
+
+        self.register_feature(PriceIncreasesFeature(1000, 5))
+        self.register_feature(PriceIncreasesFeature(500, 5))
+        self.register_feature(PriceIncreasesFeature(250, 5))
+        self.register_feature(PriceIncreasesFeature(100, 5))
+        self.register_feature(PriceIncreasesFeature(50, 5))
+
+
+        self.register_feature(TimeAvgFeature(CumulativeVolumeFeature('bid', n_levels), 250))
+        self.register_feature(TimeAvgFeature(CumulativeVolumeFeature('ask', n_levels), 250))
+        self.register_feature(TimeAvgFeature(BookSlopeFeature('bid', n_levels), 250))
+        self.register_feature(TimeAvgFeature(BookSlopeFeature('ask', n_levels), 250))
+        self.register_feature(TimeAvgFeature(LiquidityRatioFeature(n_levels), 250))
+
+        self.register_feature(TimeAvgFeature(MidPriceFeature(), 10))
+        self.register_feature(ItIncreasesFeature(TimeAvgFeature(MidPriceFeature(), 10),200,5))
+
+
     def register_feature(self, feature: BaseFeature):
         """Register a new feature."""
         self.features[feature.name] = feature
@@ -169,6 +197,7 @@ class FeatureGenerator:
                 try:
                     features_df[feature_name] = self.generate_feature(feature_name, df_cleaned, **kwargs)
                 except Exception as e:
+                    traceback.print_exc()
                     warnings.warn(f"Failed to generate feature '{feature_name}': {str(e)}")
             else:
                 warnings.warn(f"Feature '{feature_name}' is not registered")

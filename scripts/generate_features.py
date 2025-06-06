@@ -226,6 +226,8 @@ def generate_features_for_coin(
         
     except Exception as e:
         print(f"Error generating features for {coin}: {str(e)}")
+        import traceback
+        traceback.print_exc()
         return False
 
 
